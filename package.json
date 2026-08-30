@@ -2,6 +2,7 @@
   "name": "amazon-teiki-canceler",
   "version": "1.0.0",
   "description": "Amazon定期おトク便を一括でキャンセル/スキップするCLIツール",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "teiki": "src/index.js"
