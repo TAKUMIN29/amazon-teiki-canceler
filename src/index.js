@@ -5,7 +5,17 @@ import { Command } from 'commander';
 import { launch, loadSelectors, gotoSubscriptions, isLoggedOut, dump, sleep, anyPresent, ROOT } from './browser.js';
 import { listSubscriptions, refresh } from './scrape.js';
 import { runSteps } from './actions.js';
-import { renderList, selectItems, parseIndexes, confirmRun, renderSummary, kleur } from './ui.js';
+import {
+  renderList,
+  selectItems,
+  parseIndexes,
+  confirmRun,
+  renderSummary,
+  planActions,
+  renderPlanSummary,
+  confirmPlan,
+  kleur,
+} from './ui.js';
 
 const program = new Command();
 program
@@ -106,12 +116,51 @@ for (const kind of ['cancel', 'skip']) {
         if (!ok) return;
       }
 
-      const results = await execute(page, sel, flow, targets, opts);
+      const entries = targets.map((target) => ({ target, flow }));
+      const results = await executeAll(page, sel, entries, opts);
       renderSummary(results);
       writeLog(kind, opts, results);
     });
   });
 }
+
+/* --------------------------------------------------------------- manage */
+
+browserOpts(program.command('manage'))
+  .description('一覧を見ながら、商品ごとにスキップ/解約を選んで一括実行する')
+  .option('--dry-run', '最後の確定ボタンの手前まで動作を確認する（実行はしない）', false)
+  .option('-y, --yes', '確認プロンプトを省略する', false)
+  .action(async (opts) => {
+    await withPage(opts, async ({ page, sel }) => {
+      const { items } = await listSubscriptions(page, sel);
+      if (items.length === 0) {
+        console.log(kleur.yellow('\n対象の定期おトク便がありません。\n'));
+        return;
+      }
+      renderList(items);
+
+      const plan = await planActions(items);
+      renderPlanSummary(plan);
+      if (plan.length === 0) {
+        console.log(kleur.gray('終了します。\n'));
+        return;
+      }
+
+      if (!opts.yes) {
+        const ok = await confirmPlan(plan);
+        if (!ok) return;
+      }
+
+      const entries = plan.map(({ item, action }) => ({
+        target: item,
+        flow: action === 'cancel' ? sel.cancel : sel.skip,
+        action,
+      }));
+      const results = await executeAll(page, sel, entries, opts);
+      renderSummary(results);
+      writeLog('manage', opts, results);
+    });
+  });
 
 /* -------------------------------------------------------------- inspect */
 
@@ -199,15 +248,18 @@ async function pickTargets(items, opts, actionLabel) {
 }
 
 /**
- * 1件ずつ実行する。1件終わるたびに一覧を取り直し、キーで対象を探し直す。
- * （解約後はカードが消えて番号がずれるため、番号は使い回せない）
+ * entries を1件ずつ実行する。entry ごとに使う flow（cancel/skip）を変えられるので、
+ * cancel/skip コマンド（全件同じ操作）と manage コマンド（商品ごとに違う操作）の
+ * 両方から使える。1件終わるたびに一覧を取り直し、キーで対象を探し直す
+ * （解約後はカードが消えて番号がずれるため、番号は使い回せない）。
  */
-async function execute(page, sel, flow, targets, opts) {
+async function executeAll(page, sel, entries, opts) {
   const results = [];
 
-  for (let i = 0; i < targets.length; i++) {
-    const target = targets[i];
-    console.log(kleur.bold(`\n[${i + 1}/${targets.length}] ${target.title}`));
+  for (let i = 0; i < entries.length; i++) {
+    let { target, flow, action } = entries[i];
+    const label = action ? `(${action === 'cancel' ? '解約' : 'スキップ'}) ` : '';
+    console.log(kleur.bold(`\n[${i + 1}/${entries.length}] ${label}${target.title}`));
 
     if (i > 0) {
       const { items } = await refresh(page, sel);
@@ -215,6 +267,7 @@ async function execute(page, sel, flow, targets, opts) {
       if (!found) {
         results.push({
           title: target.title,
+          action,
           ok: true,
           status: 'done',
           message: '一覧から消えていました（処理済みとみなします）',
@@ -229,11 +282,11 @@ async function execute(page, sel, flow, targets, opts) {
       dryRun: !!opts.dryRun,
       log: (m) => console.log(kleur.gray(m)),
     });
-    results.push({ title: target.title, asin: target.asin, ...r });
+    results.push({ title: target.title, asin: target.asin, action, ...r });
     console.log(r.ok ? kleur.green(`    → ${r.message}`) : kleur.red(`    → ${r.message}`));
 
     // 連続実行で不自然な速さにならないよう、少し間を置く
-    if (i < targets.length - 1) await sleep(1500 + Math.floor(Math.random() * 1500));
+    if (i < entries.length - 1) await sleep(1500 + Math.floor(Math.random() * 1500));
   }
   return results;
 }

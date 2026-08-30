@@ -12,6 +12,7 @@
     "list": "node src/index.js list",
     "cancel": "node src/index.js cancel",
     "skip": "node src/index.js skip",
+    "manage": "node src/index.js manage",
     "inspect": "node src/index.js inspect",
     "test": "node test/run-tests.js",
     "mock": "node test/mock-amazon.js"

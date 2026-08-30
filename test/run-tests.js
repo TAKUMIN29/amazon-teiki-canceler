@@ -124,6 +124,31 @@ try {
   check('件数は減っていない（解約されていない）', s.length === 5, `${s.length}件`);
   check('他の商品はスキップされていない', s.filter((x) => x.skipped).length === 1);
 
+  /* ---------- 6.5. manage相当: 商品ごとに違う操作を混在させる ---------- */
+  console.log('\n[6.5] 混在実行 — 1件はスキップ、別の1件は解約（manageコマンド相当）');
+  await reset();
+  r = await openList('rich');
+  const mixPlan = [
+    { item: r.items[0], action: 'skip' },
+    { item: r.items[3], action: 'cancel' },
+  ];
+  for (let i = 0; i < mixPlan.length; i++) {
+    const { item, action } = mixPlan[i];
+    if (i > 0) {
+      const again = await openList('rich');
+      const found = again.items.find((it) => it.asin === item.asin);
+      check(`混在実行: 2件目(${action})を再同定できる`, !!found, JSON.stringify(again.items.map((x) => x.asin)));
+      item.cardSelector = found?.cardSelector;
+    }
+    const rr = await runSteps(page, item, action === 'cancel' ? sel.cancel : sel.skip, { dryRun: false });
+    check(`混在実行: ${i + 1}件目(${action})が完了`, rr.ok && rr.status.startsWith('done'), `${rr.status}: ${rr.message}`);
+  }
+  s = await state();
+  check('混在実行: スキップ対象は残っている', s.some((x) => x.sid === 'SUB-001'), JSON.stringify(s.map((x) => x.sid)));
+  check('混在実行: スキップ対象がskipped扱いになる', s.find((x) => x.sid === 'SUB-001')?.skipped === true);
+  check('混在実行: 解約対象は消えている', !s.some((x) => x.sid === 'SUB-004'), JSON.stringify(s.map((x) => x.sid)));
+  check('混在実行: 他の商品は影響を受けない', s.length === 4 && s.filter((x) => x.skipped).length === 1, JSON.stringify(s));
+
   /* ---------- 7. 見つからないときの扱い ---------- */
   console.log('\n[7] セレクタが合わないとき');
   await reset();

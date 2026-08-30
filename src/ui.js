@@ -1,5 +1,5 @@
 import kleur from 'kleur';
-import { checkbox, confirm, input } from '@inquirer/prompts';
+import { checkbox, confirm, input, select } from '@inquirer/prompts';
 
 const LINE = '─'.repeat(64);
 
@@ -49,6 +49,74 @@ export async function selectItems(items, actionLabel) {
   });
 
   return items.filter((it) => picked.includes(it.index));
+}
+
+const ACTION_CHOICES = [
+  { name: '何もしない', value: 'none' },
+  { name: '次回のお届けをスキップ', value: 'skip' },
+  { name: kleur.red('解約する（元に戻せません）'), value: 'cancel' },
+];
+
+/**
+ * 一覧を見ながら、商品ごとに「何もしない/スキップ/解約」を選ばせる。
+ * @returns {Promise<Array<{item, action:'skip'|'cancel'}>>} none を選んだ商品は含まれない
+ */
+export async function planActions(items) {
+  const plan = [];
+  for (const it of items) {
+    const { head, meta } = lines(it);
+    console.log('');
+    console.log(`${kleur.cyan(String(it.index).padStart(2))}. ${kleur.bold(head)}`);
+    if (meta) console.log(`    ${kleur.gray(meta)}`);
+
+    const action = await select({
+      message: 'この商品をどうしますか？',
+      choices: ACTION_CHOICES,
+      default: 'none',
+    });
+    if (action !== 'none') plan.push({ item: it, action });
+  }
+  return plan;
+}
+
+export function renderPlanSummary(plan) {
+  console.log('');
+  if (plan.length === 0) {
+    console.log(kleur.yellow('実行する項目がありません。'));
+    return;
+  }
+  console.log(kleur.bold(`実行予定 (${plan.length}件)`));
+  console.log(kleur.gray(LINE));
+  for (const { item, action } of plan) {
+    const tag = action === 'cancel' ? kleur.red('解約  ') : kleur.yellow('スキップ');
+    console.log(`  ${tag}  ${truncate(item.title, 52)}`);
+  }
+  console.log(kleur.gray(LINE));
+}
+
+/** manage コマンド用の最終確認。解約が1件でも含まれれば警告し、2件以上なら文字入力を要求する。 */
+export async function confirmPlan(plan) {
+  const cancelCount = plan.filter((p) => p.action === 'cancel').length;
+
+  if (cancelCount > 0) {
+    console.log('');
+    console.log(kleur.red().bold('  ⚠ 解約は元に戻せません。再開するには登録し直しになります。'));
+  }
+
+  if (cancelCount >= 2) {
+    console.log('');
+    const answer = await input({
+      message: `本当に実行する場合は ${kleur.bold('CANCEL')} と入力してください`,
+    });
+    if (answer.trim() !== 'CANCEL') {
+      console.log(kleur.yellow('入力が一致しなかったため中止しました。'));
+      return false;
+    }
+    return true;
+  }
+
+  console.log('');
+  return await confirm({ message: '実行しますか?', default: false });
 }
 
 /** インデックス指定 "1,3,5-7" を展開する */
@@ -110,7 +178,8 @@ export function renderSummary(results) {
       : r.status === 'done-unverified' ? kleur.yellow('△ 実行済(未確認)')
       : r.status === 'dry-run' ? kleur.blue('◇ 到達(未実行)')
       : kleur.red('✗ 失敗');
-    console.log(`${mark}  ${truncate(r.title, 46)}`);
+    const tag = r.action ? `${kleur.gray('[' + (r.action === 'cancel' ? '解約' : 'スキップ') + ']')} ` : '';
+    console.log(`${mark}  ${tag}${truncate(r.title, 46)}`);
     if (r.message && r.status !== 'done') console.log(`        ${kleur.gray(r.message)}`);
   }
   console.log(kleur.gray(LINE));
