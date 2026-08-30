@@ -16,7 +16,7 @@
  *   node test/mock-amazon.js          → http://127.0.0.1:8787 で起動
  */
 import http from 'node:http';
-import { URL } from 'node:url';
+import { URL, pathToFileURL } from 'node:url';
 
 const PORT = Number(process.env.MOCK_PORT || 8787);
 
@@ -38,13 +38,15 @@ const esc = (s) =>
 
 function card(s) {
   const editUrl = `/auto-deliveries/ajax/subscription/?subscriptionId=${encodeURIComponent(s.sid)}&subAsin=${encodeURIComponent(s.asin)}`;
+  // 実物と同じく data-edit-url は「カード要素そのもの」に付く（子孫ではない）。
+  // ここを子要素にしてしまうと、カード自身の属性を読めない不具合をテストで拾えなくなる。
   return `
-  <div class="a-column a-span12 a-spacing-micro" data-sid="${esc(s.sid)}">
+  <div class="a-column a-span12 a-spacing-micro" data-sid="${esc(s.sid)}" data-edit-url="${esc(editUrl)}">
     <img alt="${esc(s.title)}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
     <span class="a-size-small a-color-secondary">次回の配達日: ${esc(s.next)}</span>
     <span class="a-size-small a-color-secondary">${esc(s.freq)}</span>
     ${s.skipped ? '<span class="a-color-success">次回のお届けをスキップ済み</span>' : ''}
-    <div role="button" tabindex="0" data-edit-link="true" data-edit-url="${esc(editUrl)}" data-sid="${esc(s.sid)}">
+    <div role="button" tabindex="0" data-edit-link="true" data-sid="${esc(s.sid)}">
       <span class="a-size-small a-color-link">編集</span>
     </div>
   </div>`;
@@ -216,7 +218,10 @@ export function createServer() {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
+// 直接実行されたときだけサーバを起動する（他ファイルからimportされたときは起動しない）。
+// 自前で "file://" を組み立てるとWindowsでドライブレターの前のスラッシュ数が合わず
+// 判定が常にfalseになるため、pathToFileURLで正規化して比較する。
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   createServer().listen(PORT, '127.0.0.1', () => {
     console.log(`mock amazon: http://127.0.0.1:${PORT}/auto-deliveries`);
   });

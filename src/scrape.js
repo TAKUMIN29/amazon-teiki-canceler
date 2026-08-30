@@ -100,10 +100,15 @@ async function readSubscriptionId(cardLoc, idAttrs) {
  */
 async function readIdsFromEditUrl(cardLoc, editUrlId, baseUrl) {
   if (!editUrlId) return { subscriptionId: null, asin: null };
-  const el = cardLoc.locator(editUrlId.selector).first();
-  if ((await el.count().catch(() => 0)) === 0) return { subscriptionId: null, asin: null };
 
-  const raw = await el.getAttribute(editUrlId.attr).catch(() => null);
+  // 実際のAmazonでは data-edit-url が「カード要素そのもの」に付いている。
+  // locator()は子孫しか探さないため、まずカード自身の属性を見てから子孫を探す。
+  let raw = await cardLoc.getAttribute(editUrlId.attr).catch(() => null);
+  if (!raw) {
+    const el = cardLoc.locator(editUrlId.selector).first();
+    if ((await el.count().catch(() => 0)) === 0) return { subscriptionId: null, asin: null };
+    raw = await el.getAttribute(editUrlId.attr).catch(() => null);
+  }
   if (!raw) return { subscriptionId: null, asin: null };
 
   try {
@@ -149,7 +154,7 @@ export async function listSubscriptions(page, sel) {
       title: title ?? '(商品名を取得できませんでした)',
       url: absolutize(await readValue(card, f.url), sel.urls.base),
       image: await readValue(card, f.image),
-      nextDelivery: await readValue(card, f.nextDelivery),
+      nextDelivery: stripLabel(await readValue(card, f.nextDelivery)),
       quantity: await readValue(card, f.quantity),
       frequency: await readValue(card, f.frequency),
       price: await readValue(card, f.price),
@@ -159,6 +164,16 @@ export async function listSubscriptions(page, sel) {
   }
 
   return { items, strategy, empty: items.length === 0 };
+}
+
+/**
+ * 「次回の配達日: 9月8日」のようにラベルごと拾ってしまった値から、ラベル部分を落とす。
+ * 表示側でも「次回:」を付けるため、そのままだと "次回: 次回の配達日: 9月8日" になる。
+ */
+function stripLabel(value) {
+  if (!value) return value;
+  const stripped = value.replace(/^\s*(次回の配達日|次回のお届け予定日|次回のお届け|次回お届け|次回)\s*[:：]?\s*/, '');
+  return clean(stripped) ?? value;
 }
 
 function absolutize(href, base) {

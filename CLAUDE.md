@@ -31,3 +31,10 @@
 - `src/` 側の抽出/実行ロジックを直す場合は、`test/mock-amazon.js` に
   該当する画面パターンを再現し、`test/run-tests.js` にケースを追加してから
   直すこと。
+- Windows/macOS/Linux両対応が前提。ファイルパスは `path.join`/`fileURLToPath`
+  など`node:path`・`node:url`のAPIに任せ、`file://` 文字列や `URL.pathname` を
+  自前で組み立てない（Windowsのドライブレターやスラッシュの数で壊れるため。
+  過去に `test/mock-amazon.js` の起動判定と `test/run-tests.js` のプロファイル
+  パスで実際に壊れたことがある）。開発機がWindowsのみでmacの実機が無くても、
+  `test/run-tests.js` の「[9] クロスプラットフォーム」ブロックで両OS分の
+  パス変換を検証しているので、そこにケースを足せば実機無しで確認できる。

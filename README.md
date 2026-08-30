@@ -26,13 +26,24 @@ Amazon側の画面が変わってもロジック本体（`src/`）を直す必�
 - `cancel`/`skip` は `--index` / `--filter` / 対話選択（チェックボックス）のいずれでも対象を選べる
 - 実行結果は `logs/` に、失敗時の画面キャプチャは `out/` に自動保存
 
+## 動作環境
+
+- Node.js 20以上
+- Google Chrome（未インストールなら `npx playwright install chromium` で代替可）
+- Windows / macOS / Linux
+
+Windows（コマンドプロンプト、PowerShell）とmacOS/Linux（bash、zsh）のどちらでも、
+以下のコマンドはそのまま同じ形で使えます。
+
 ## セットアップ
 
 ```bash
 npm install
-npx playwright install chrome   # 初回のみ（システムのChromeが使えない場合）
-npm run login                   # ブラウザが開くのでAmazonにログイン（初回のみ）
+npm run login    # ブラウザが開くのでAmazonにログイン（初回のみ）
 ```
+
+Google Chromeが入っていない場合は、先に `npx playwright install chromium` を
+実行してください（Playwright同梱のChromiumで動きます）。
 
 ログイン情報は `.profile/`（このリポジトリ配下の永続プロファイル）に保存されます。
 2回目以降は `npm run login` を実行し直す必要はありません。

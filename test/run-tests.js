@@ -8,13 +8,17 @@
  * 「カード検出 / フィールド抽出 / 編集モーダルを開く / 理由選択 / 確定 / dry-run が止まるか」
  * といったロジック側の正しさはここで担保する。
  */
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createServer } from './mock-amazon.js';
 
 const PORT = 8788;
 const BASE = `http://127.0.0.1:${PORT}`;
 
 process.env.TEIKI_BASE_URL = BASE;
-process.env.TEIKI_PROFILE_DIR = new URL('../.profile-test', import.meta.url).pathname.replace(/^\//, '');
+// URL.pathname をそのまま使うと、macOS/Linuxでは先頭の "/" を落とすと相対パスになり、
+// Windowsでは逆に "/" が残るとドライブレターの前に付いてしまう。fileURLToPathに任せる。
+process.env.TEIKI_PROFILE_DIR = fileURLToPath(new URL('../.profile-test', import.meta.url));
 
 const { launch, loadSelectors, settle } = await import('../src/browser.js');
 const { listSubscriptions } = await import('../src/scrape.js');
@@ -61,9 +65,14 @@ try {
   check('商品名が取れる(img altから)', r.items[0].title.includes('アタック抗菌EXパワー'), r.items[0].title);
   check('次回配達日が取れる', /2026年9月12日/.test(r.items[0].nextDelivery ?? ''), String(r.items[0].nextDelivery));
   check('頻度が取れる', (r.items[0].frequency ?? '').includes('ごとに'), String(r.items[0].frequency));
-  check('ASINがdata-edit-urlから取れる', r.items[0].asin === 'B08XYZ1234', String(r.items[0].asin));
-  check('購読IDがdata-edit-urlから取れる', r.items[0].subscriptionId === 'SUB-001', String(r.items[0].subscriptionId));
+  // 実際のAmazonでは data-edit-url がカード要素そのものに付いている。
+  // Playwrightのlocator()は子孫しか探さないため、自身の属性も見るようにしてある。
+  check('ASINがカード自身のdata-edit-urlから取れる', r.items[0].asin === 'B08XYZ1234', String(r.items[0].asin));
+  check('購読IDがカード自身のdata-edit-urlから取れる', r.items[0].subscriptionId === 'SUB-001', String(r.items[0].subscriptionId));
+  check('全件でASINが取れている(nullが無い)', r.items.every((i) => !!i.asin), JSON.stringify(r.items.map((i) => i.asin)));
   check('商品ごとに別カードになっている', new Set(r.items.map((i) => i.asin)).size === 5);
+  // 表示側で「次回:」を付けるので、抽出値にラベルが残っていると二重になる
+  check('次回配達日にラベルが残っていない', !/次回/.test(r.items[0].nextDelivery ?? ''), String(r.items[0].nextDelivery));
 
   /* ---------- 2. 目印なし(plain)の抽出 ---------- */
   console.log('\n[2] 一覧の抽出 — コンテナidが無い（ヒューリスティック経路）');
@@ -169,6 +178,43 @@ try {
   check('重複は除かれる', JSON.stringify(parseIndexes('1,1,2-3,3', 5)) === '[1,2,3]');
   check('範囲外はエラーになる', throws(() => parseIndexes('9', 5)));
   check('不正な書式はエラーになる', throws(() => parseIndexes('abc', 5)));
+
+  /* ---------- 9. Windows/macOS 両対応 ---------- */
+  console.log('\n[9] クロスプラットフォーム（パスの扱い）');
+  // ここで使っているプロファイルパスは fileURLToPath 由来。相対パスになっていると
+  // macOSでカレントディレクトリ配下に意図しないプロファイルが作られてしまう。
+  check(
+    'テスト用プロファイルパスが絶対パスになっている',
+    path.isAbsolute(process.env.TEIKI_PROFILE_DIR),
+    process.env.TEIKI_PROFILE_DIR
+  );
+  check(
+    'プロファイルパスにURLエンコードが残っていない',
+    !/%[0-9A-Fa-f]{2}/.test(process.env.TEIKI_PROFILE_DIR),
+    process.env.TEIKI_PROFILE_DIR
+  );
+  // 自前で "file://" を組み立てるとWindowsでドライブレターの前のスラッシュ数が合わず、
+  // 「直接実行されたか」の判定が常にfalseになって npm run mock が起動しなくなる。
+  {
+    const winPath = 'C:\\proj\\test\\mock-amazon.js';
+    const posixPath = '/Users/foo/proj/test/mock-amazon.js';
+    const naive = (p) => 'file://' + p.replace(/\\/g, '/');
+    check(
+      'pathToFileURLならWindowsパスを正しくURL化できる',
+      pathToFileURL(winPath).href === 'file:///C:/proj/test/mock-amazon.js',
+      pathToFileURL(winPath).href
+    );
+    check(
+      '自前の file:// 連結はWindowsで壊れる（退行防止のため明示）',
+      naive(winPath) !== 'file:///C:/proj/test/mock-amazon.js',
+      naive(winPath)
+    );
+    check(
+      'POSIXパスは往復変換で元に戻る',
+      fileURLToPath(pathToFileURL(posixPath).href).replace(/\\/g, '/').endsWith('proj/test/mock-amazon.js'),
+      fileURLToPath(pathToFileURL(posixPath).href)
+    );
+  }
 } finally {
   await ctx.close().catch(() => {});
   server.close();

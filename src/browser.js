@@ -44,11 +44,16 @@ export async function launch({ headless = false, slowMo = 0 } = {}) {
 
   let ctx;
   try {
-    // 実際にインストールされている Chrome を使う（検知されにくく、挙動も本物と同じ）
+    // 実際にインストールされている Chrome を使う（検知されにくく、挙動も本物と同じ）。
+    // channel:'chrome' はWindows/macOS/Linuxのいずれでも既定のインストール先を探してくれる。
     ctx = await chromium.launchPersistentContext(PROFILE_DIR, { ...common, channel: 'chrome' });
-  } catch {
-    // Chrome が見つからなければ Playwright 同梱の Chromium にフォールバック
-    ctx = await chromium.launchPersistentContext(PROFILE_DIR, common);
+  } catch (chromeError) {
+    try {
+      // Chrome が見つからなければ Playwright 同梱の Chromium にフォールバック
+      ctx = await chromium.launchPersistentContext(PROFILE_DIR, common);
+    } catch (chromiumError) {
+      throw new Error(explainLaunchFailure(chromeError, chromiumError));
+    }
   }
 
   ctx.setDefaultTimeout(20000);
@@ -56,6 +61,35 @@ export async function launch({ headless = false, slowMo = 0 } = {}) {
 
   const page = ctx.pages()[0] ?? (await ctx.newPage());
   return { ctx, page };
+}
+
+/**
+ * ブラウザが起動できなかったときに、原因別の対処法を添えたメッセージを組み立てる。
+ * ブラウザが無い/プロファイルが使用中、のどちらかであることがほとんど。
+ */
+function explainLaunchFailure(chromeError, chromiumError) {
+  const detail = String(chromiumError?.message ?? chromiumError).split('\n')[0];
+  const both = `${chromeError?.message ?? ''}\n${chromiumError?.message ?? ''}`;
+
+  // 同じプロファイルを使う別のブラウザが起動したままだと掴めない
+  if (/ProcessSingleton|profile.*in use|SingletonLock/i.test(both)) {
+    return [
+      'ブラウザを起動できませんでした（プロファイルが使用中の可能性があります）。',
+      `  ${detail}`,
+      '',
+      'このツールが前回開いたChromeのウィンドウが残っていないか確認して、閉じてから再実行してください。',
+      `  プロファイル: ${PROFILE_DIR}`,
+    ].join('\n');
+  }
+
+  return [
+    'ブラウザを起動できませんでした。',
+    `  ${detail}`,
+    '',
+    'Google Chrome が入っていない場合は、次のどちらかを実行してください:',
+    '  1) Google Chrome をインストールする（推奨）',
+    '  2) Playwright同梱のChromiumを入れる:  npx playwright install chromium',
+  ].join('\n');
 }
 
 /** 定期おトク便の管理ページを開く。ログインが必要なら false を返す。 */
