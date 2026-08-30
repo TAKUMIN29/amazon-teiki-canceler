@@ -3,8 +3,9 @@
  *
  *   npm test
  *
- * 実際のAmazonのDOMは検証できないが、
- * 「カード検出 / フィールド抽出 / 折りたたみを開く / 理由選択 / 確定 / dry-run が止まるか」
+ * ここでのDOM構造は、2026-08-30にclaude-in-chromeで実際のamazon.co.jpにログインして
+ * 確認した挙動(確定ボタンは一度もクリックしていない)を再現したもの。
+ * 「カード検出 / フィールド抽出 / 編集モーダルを開く / 理由選択 / 確定 / dry-run が止まるか」
  * といったロジック側の正しさはここで担保する。
  */
 import { createServer } from './mock-amazon.js';
@@ -51,40 +52,41 @@ async function openList(mode) {
 }
 
 try {
-  /* ---------- 1. 目印あり(rich)の抽出 ---------- */
-  console.log('\n[1] 一覧の抽出 — data-subscription-id あり');
+  /* ---------- 1. 目印あり(#subscriptionsDesktopGridLayout)の抽出 ---------- */
+  console.log('\n[1] 一覧の抽出 — #subscriptionsDesktopGridLayout あり');
   await reset();
-  let r = await openList('rich');
+  let r = await openList();
   check('5件すべて検出できる', r.items.length === 5, `検出: ${r.items.length}件`);
   check('設定セレクタ経路が使われる', r.strategy.startsWith('css:'), `strategy=${r.strategy}`);
-  check('商品名が取れる', r.items[0].title.includes('アタック抗菌EXパワー'), r.items[0].title);
-  check('次回お届け日が取れる', /2026年9月12日/.test(r.items[0].nextDelivery ?? ''), String(r.items[0].nextDelivery));
-  check('価格が取れる', (r.items[0].price ?? '').includes('1,180'), String(r.items[0].price));
-  check('ASINが取れる', r.items[0].asin === 'B08XYZ1234', String(r.items[0].asin));
-  check('購読IDが取れる', r.items[0].subscriptionId === 'SUB-001', String(r.items[0].subscriptionId));
+  check('商品名が取れる(img altから)', r.items[0].title.includes('アタック抗菌EXパワー'), r.items[0].title);
+  check('次回配達日が取れる', /2026年9月12日/.test(r.items[0].nextDelivery ?? ''), String(r.items[0].nextDelivery));
+  check('頻度が取れる', (r.items[0].frequency ?? '').includes('ごとに'), String(r.items[0].frequency));
+  check('ASINがdata-edit-urlから取れる', r.items[0].asin === 'B08XYZ1234', String(r.items[0].asin));
+  check('購読IDがdata-edit-urlから取れる', r.items[0].subscriptionId === 'SUB-001', String(r.items[0].subscriptionId));
   check('商品ごとに別カードになっている', new Set(r.items.map((i) => i.asin)).size === 5);
 
   /* ---------- 2. 目印なし(plain)の抽出 ---------- */
-  console.log('\n[2] 一覧の抽出 — 目印なし（ヒューリスティック経路）');
+  console.log('\n[2] 一覧の抽出 — コンテナidが無い（ヒューリスティック経路）');
   r = await openList('plain');
   check('5件すべて検出できる', r.items.length === 5, `検出: ${r.items.length}件`);
-  check('ヒューリスティック経路が使われる', r.strategy.startsWith('heuristic:'), `strategy=${r.strategy}`);
+  check('img[alt]起点のヒューリスティックが使われる', r.strategy === 'heuristic:img-alt-ancestor', `strategy=${r.strategy}`);
   check('商品名が取れる', r.items[2].title.includes('サントリー天然水'), r.items[2].title);
   check('カードが入れ子になっていない', new Set(r.items.map((i) => i.asin)).size === 5);
+  check('ヒューリスティック経路でもASINが取れる', r.items[2].asin === 'B09QWER890', String(r.items[2].asin));
 
   /* ---------- 3. dry-run は実行しない ---------- */
   console.log('\n[3] dry-run — 確定の手前で止まる');
   await reset();
-  r = await openList('rich');
+  r = await openList();
   let res = await runSteps(page, r.items[0], sel.cancel, { dryRun: true });
   check('dry-run として完了する', res.ok && res.status === 'dry-run', `${res.status}: ${res.message}`);
   check('最終ボタンまで到達している', res.trace.some((t) => t.result === 'dry-run-stop'), JSON.stringify(res.trace));
   check('サーバ側は1件も減っていない', (await state()).length === 5);
 
   /* ---------- 4. 解約の実行 ---------- */
-  console.log('\n[4] 解約 — 折りたたみを開く → 理由を選ぶ → 確定');
+  console.log('\n[4] 解約 — 編集モーダルを開く → 「定期おトク便を停止する」→ 理由を選ぶ → 確定');
   await reset();
-  r = await openList('rich');
+  r = await openList();
   res = await runSteps(page, r.items[1], sel.cancel, { dryRun: false });
   check('解約が完了する', res.ok && res.status === 'done', `${res.status}: ${res.message}`);
   check('成功メッセージを検知できる', res.status === 'done');
@@ -96,12 +98,12 @@ try {
   /* ---------- 5. 連続解約（番号ずれの検証） ---------- */
   console.log('\n[5] 連続解約 — 1件ごとに一覧を取り直して同定する');
   await reset();
-  r = await openList('rich');
+  r = await openList();
   const targets = [r.items[0], r.items[4]]; // 先頭と末尾（途中で番号がずれる組み合わせ）
   const keys = targets.map((t) => t.asin);
   for (let i = 0; i < targets.length; i++) {
     if (i > 0) {
-      const again = await openList('rich');
+      const again = await openList();
       const found = again.items.find((it) => it.asin === keys[i]);
       check(`2件目を再同定できる (${keys[i]})`, !!found, JSON.stringify(again.items.map((x) => x.asin)));
       targets[i].cardSelector = found?.cardSelector;
@@ -114,9 +116,9 @@ try {
   check('正しい2件が消えている', !s.some((x) => ['SUB-001', 'SUB-005'].includes(x.sid)), JSON.stringify(s.map((x) => x.sid)));
 
   /* ---------- 6. スキップ ---------- */
-  console.log('\n[6] 次回分のスキップ');
+  console.log('\n[6] 次回分のスキップ — 「次の配達を中止する」→ 確定');
   await reset();
-  r = await openList('rich');
+  r = await openList();
   res = await runSteps(page, r.items[2], sel.skip, { dryRun: false });
   check('スキップが完了する', res.ok && res.status.startsWith('done'), `${res.status}: ${res.message}`);
   s = await state();
@@ -127,7 +129,7 @@ try {
   /* ---------- 6.5. manage相当: 商品ごとに違う操作を混在させる ---------- */
   console.log('\n[6.5] 混在実行 — 1件はスキップ、別の1件は解約（manageコマンド相当）');
   await reset();
-  r = await openList('rich');
+  r = await openList();
   const mixPlan = [
     { item: r.items[0], action: 'skip' },
     { item: r.items[3], action: 'cancel' },
@@ -135,7 +137,7 @@ try {
   for (let i = 0; i < mixPlan.length; i++) {
     const { item, action } = mixPlan[i];
     if (i > 0) {
-      const again = await openList('rich');
+      const again = await openList();
       const found = again.items.find((it) => it.asin === item.asin);
       check(`混在実行: 2件目(${action})を再同定できる`, !!found, JSON.stringify(again.items.map((x) => x.asin)));
       item.cardSelector = found?.cardSelector;
@@ -152,7 +154,7 @@ try {
   /* ---------- 7. 見つからないときの扱い ---------- */
   console.log('\n[7] セレクタが合わないとき');
   await reset();
-  r = await openList('rich');
+  r = await openList();
   const broken = { ...sel.cancel, steps: sel.cancel.steps.map((st) => ({ ...st, target: [{ css: '.存在しないクラス' }] })) };
   res = await runSteps(page, r.items[0], broken, { dryRun: false });
   check('失敗として返る（例外にならない）', res.ok === false && res.status === 'not-found', JSON.stringify(res));

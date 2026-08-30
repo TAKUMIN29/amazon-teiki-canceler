@@ -9,7 +9,37 @@ description: Amazon定期おトク便キャンセルCLI(teiki)が「要素が見
 `config/selectors.json` に外出ししている。Amazon側の画面が変わると `list` / `cancel` / `skip`
 が「要素が見つかりません」で失敗するようになるが、直すのは基本的にこの1ファイルだけでよい。
 
+## 参考: 2026-08-30時点で確認した実際の画面構造
+
+claude-in-chromeで実際のamazon.co.jpにログインして確認した構造（確定ボタンは
+一度もクリックしていない）。`config/selectors.json` の現行の値はこれに基づく。
+
+- `/auto-deliveries` のデフォルト表示は「配送日ごとのタブ」で、商品ごとの管理一覧は
+  下にスクロールした「ご利用のサブスクリプション」セクション
+  (`#subscriptionsDesktopGridLayout`) にある。
+- 各カードには `<a>` や `<button>` が無く、`div[data-edit-link='true'][role='button']`
+  をクリックすると `a-popover-modal` の編集ダイアログが開く。
+- ASIN・購読IDを示すリンクも無く、代わりに編集ボタンの `data-edit-url` 属性の
+  クエリ文字列（`subscriptionId`, `subAsin`）に入っている。
+- 編集ダイアログ内の「定期おトク便を停止する」リンクでキャンセル導線
+  (`#cancel-subscription-dialog`, 理由セレクト `#sns-cancellation-dropdown`,
+  確定ボタン `#confirmCancelLink`) が同じモーダル内に展開する。
+- 編集ダイアログ内の「次の配達を中止する」
+  (`[data-csa-c-content-id='skip-next-delivery']`) リンクで、別の確認モーダル
+  (確定ボタン `.skip-approve-button`) が開く。
+- ページ遷移は起きず、確定ボタンを押したときだけサーバに通知される（SPA的）。
+
+Amazonがこの構造自体を変えた場合は、下記の手順で再調査すること。
+
 ## 手順
+
+0. **（可能なら）claude-in-chromeで実画面を直接見る**
+   `npm run inspect` は静的なHTMLしか見えないため、モーダルの中身やJSで動的に
+   生成される要素までは追えないことがある。claude-in-chromeスキルでログイン済みの
+   実ブラウザを操作できる状況なら、そちらの方が早く正確に構造を特定できる。
+   ただし **解約/スキップの確定ボタンは、ユーザーの明示的な許可なく絶対に
+   クリックしないこと**（取り返しがつかない）。理由選択欄や確定ボタンの存在・
+   IDまでは安全に確認できるので、そこで止める。
 
 1. **現状を吸い出す**
    ```
@@ -35,8 +65,10 @@ description: Amazon定期おトク便キャンセルCLI(teiki)が「要素が見
      `i` フラグを付けて書く（例: `select[name*='reason' i]`）。Amazon側の属性名が
      `cancelReason` のようにキャメルケースでも壊れないようにするため。
    - 一覧のカード検出がそもそも0件になっている場合は `list.card` の候補を見直す。
-     `list.card` が空でも `heuristic:anchor-ancestor`（商品リンクの祖先をたどる方式）に
-     自動フォールバックするので、まずそちらの抽出結果（`strategy`）で件数が出ているか確認する。
+     `list.card` が空でも自動的にヒューリスティックへフォールバックする
+     （dpリンクがあれば `heuristic:anchor-ancestor`、無ければ `img[alt]` 起点の
+     `heuristic:img-alt-ancestor`）ので、まずそちらの抽出結果（`strategy`）で
+     件数が出ているか確認する。
    - 「最後の一歩」（解約/スキップの最終確定ボタン）には `pointOfNoReturn: true` が
      付いている。ここだけは `--dry-run` で実クリックせずに到達確認できるので、
      セレクタを直したら必ず `--dry-run` から試す。
