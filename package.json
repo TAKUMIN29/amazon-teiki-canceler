@@ -1,0 +1,28 @@
+{
+  "name": "amazon-teiki-canceler",
+  "version": "1.0.0",
+  "description": "Amazon定期おトク便を一括でキャンセル/スキップするCLIツール",
+  "type": "module",
+  "bin": {
+    "teiki": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "login": "node src/index.js login",
+    "list": "node src/index.js list",
+    "cancel": "node src/index.js cancel",
+    "skip": "node src/index.js skip",
+    "inspect": "node src/index.js inspect",
+    "test": "node test/run-tests.js",
+    "mock": "node test/mock-amazon.js"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.2.1",
+    "commander": "^12.1.0",
+    "kleur": "^4.1.5",
+    "playwright": "^1.49.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

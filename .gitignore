@@ -1,0 +1,9 @@
+node_modules/
+.profile/
+.profile-test/
+.profile-debug/
+out/
+logs/
+npm-debug.log*
+.DS_Store
+.agents/

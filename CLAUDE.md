@@ -1,0 +1,27 @@
+# CLAUDE.md
+
+このリポジトリはAmazon「定期おトク便」の一括解約/スキップCLI（`teiki`）です。
+
+## 全体像
+
+- Amazonに定期おトク便を操作する公開APIは無いため、Playwright + 実Chrome
+  （永続プロファイル `.profile/`）でログイン済みブラウザを直接操作している。
+- Amazon画面のDOM依存部分は `config/selectors.json` に完全に外出ししてある。
+  **画面が変わったときに直すのは基本的にこのファイルだけ。** 詳しい手順は
+  `.claude/skills/fix-teiki-selectors/SKILL.md` を参照。
+- 実際のAmazonには一切アクセスせずにロジックを検証できるよう、
+  `test/mock-amazon.js` にダミーのAmazon風画面を用意し、`test/run-tests.js`
+  で回帰テストしている（`npm test`）。
+
+## 変更時の注意
+
+- `cancel` は取り返しのつかない操作。ロジックを変更したら、まず `npm test`
+  （モック環境）で通し、次に実画面へは必ず `--dry-run` から試すこと。
+- セレクタの追加は「壊れた候補を書き換える」のではなく「候補配列の先頭に
+  新しい候補を足す」方が安全（他の画面バリアントを壊さないため）。
+- 部分一致CSS属性セレクタ（`[name*='...']` 等）は大文字小文字を無視する
+  `i` フラグを付ける運用にしている（例: `select[name*='reason' i]`）。
+  Amazon側の属性名がキャメルケースでも壊れないようにするため。
+- `src/` 側の抽出/実行ロジックを直す場合は、`test/mock-amazon.js` に
+  該当する画面パターンを再現し、`test/run-tests.js` にケースを追加してから
+  直すこと。

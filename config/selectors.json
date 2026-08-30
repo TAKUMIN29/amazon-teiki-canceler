@@ -1,0 +1,435 @@
+{
+  "_comment": [
+    "Amazonの画面が変わったら、このファイルだけを直せば動くようになります。",
+    "target は「候補の配列」です。上から順に試して、最初に見つかったものを使います。",
+    "候補の書き方:",
+    "  { \"css\": \"button.foo\" }",
+    "  { \"text\": \"キャンセル\", \"tag\": \"button\" }   ... タグ省略可(*)",
+    "  { \"role\": \"button\", \"name\": \"キャンセル\" }",
+    "  { \"xpath\": \"//button[...]\" }",
+    "  共通オプション: \"exact\": true / \"nth\": 0 / \"regex\": true"
+  ],
+  "urls": {
+    "base": "https://www.amazon.co.jp",
+    "subscriptions": "https://www.amazon.co.jp/auto-deliveries",
+    "subscriptionsFallback": "https://www.amazon.co.jp/gp/subscribe-and-save/manager",
+    "loginCheck": "https://www.amazon.co.jp/gp/css/homepage.html"
+  },
+  "auth": {
+    "loggedOutMarkers": [
+      {
+        "css": "#ap_email"
+      },
+      {
+        "css": "#ap_password"
+      },
+      {
+        "css": "form[name='signIn']"
+      },
+      {
+        "text": "Eメールまたは携帯電話番号"
+      }
+    ],
+    "loggedInMarkers": [
+      {
+        "css": "#nav-link-accountList"
+      },
+      {
+        "css": "#nav-your-amazon"
+      }
+    ],
+    "challengeMarkers": [
+      {
+        "css": "form[action*='validateCaptcha' i]"
+      },
+      {
+        "css": "#auth-mfa-otpcode"
+      },
+      {
+        "text": "ロボットではないことを確認"
+      },
+      {
+        "text": "Enter the characters you see below"
+      }
+    ]
+  },
+  "list": {
+    "readyMarkers": [
+      {
+        "css": "[data-subscription-id]"
+      },
+      {
+        "css": "[id^='subscription-']"
+      },
+      {
+        "css": "div.a-box-group"
+      },
+      {
+        "text": "定期おトク便",
+        "regex": true
+      }
+    ],
+    "emptyMarkers": [
+      {
+        "text": "定期おトク便の登録はありません"
+      },
+      {
+        "text": "現在、定期おトク便でご購入いただいている商品はありません"
+      },
+      {
+        "text": "You have no active subscriptions"
+      }
+    ],
+    "card": [
+      {
+        "css": "[data-subscription-id]"
+      },
+      {
+        "css": "div[id^='subscription-card']"
+      },
+      {
+        "css": "div[id^='subscription-']"
+      },
+      {
+        "css": "div.subscription-item"
+      },
+      {
+        "css": "div.a-box-group[data-a-subscription]"
+      }
+    ],
+    "idAttributes": [
+      "data-subscription-id",
+      "data-subscriptionid",
+      "id"
+    ],
+    "fields": {
+      "title": [
+        {
+          "css": "a[href*='/dp/' i] span"
+        },
+        {
+          "css": "a[href*='/dp/' i]"
+        },
+        {
+          "css": ".subscription-title"
+        },
+        {
+          "css": "h2, h3, h4"
+        },
+        {
+          "css": "img[alt]",
+          "attr": "alt"
+        }
+      ],
+      "url": [
+        {
+          "css": "a[href*='/dp/' i]",
+          "attr": "href"
+        },
+        {
+          "css": "a[href*='/gp/product/' i]",
+          "attr": "href"
+        }
+      ],
+      "image": [
+        {
+          "css": "img",
+          "attr": "src"
+        }
+      ],
+      "nextDelivery": [
+        {
+          "css": "[data-next-delivery-date]",
+          "attr": "data-next-delivery-date"
+        },
+        {
+          "xpath": ".//*[contains(text(),'次回のお届け')]/following::*[1]"
+        },
+        {
+          "xpath": ".//*[contains(text(),'次回お届け')]"
+        },
+        {
+          "xpath": ".//*[contains(text(),'次回')]"
+        }
+      ],
+      "quantity": [
+        {
+          "css": "select[name*='quantity' i] option[selected]"
+        },
+        {
+          "css": "select[id*='quantity' i]"
+        },
+        {
+          "xpath": ".//*[contains(text(),'数量')]"
+        }
+      ],
+      "frequency": [
+        {
+          "css": "select[name*='frequency' i]"
+        },
+        {
+          "xpath": ".//*[contains(text(),'ごとに')]"
+        },
+        {
+          "xpath": ".//*[contains(text(),'か月')]"
+        }
+      ],
+      "price": [
+        {
+          "css": ".a-price .a-offscreen"
+        },
+        {
+          "css": ".a-color-price"
+        },
+        {
+          "xpath": ".//*[contains(text(),'￥')]"
+        },
+        {
+          "xpath": ".//*[contains(text(),'¥')]"
+        }
+      ]
+    }
+  },
+  "cancel": {
+    "label": "定期購入を解約",
+    "steps": [
+      {
+        "description": "カード内の「設定を変更」メニューを開く（あれば）",
+        "scope": "card",
+        "action": "click",
+        "optional": true,
+        "waitAfter": 1200,
+        "target": [
+          {
+            "role": "button",
+            "name": "定期おトク便の設定を変更"
+          },
+          {
+            "role": "link",
+            "name": "定期おトク便の設定を変更"
+          },
+          {
+            "text": "定期おトク便の設定を変更"
+          },
+          {
+            "text": "設定を変更"
+          },
+          {
+            "css": "a[href*='subscription' i][href*='edit' i]"
+          },
+          {
+            "css": "[data-action*='expander' i] , .a-expander-prompt"
+          }
+        ]
+      },
+      {
+        "description": "「定期おトク便をキャンセル」を押す",
+        "scope": "cardThenPage",
+        "action": "click",
+        "optional": false,
+        "waitAfter": 2000,
+        "target": [
+          {
+            "role": "link",
+            "name": "定期おトク便をキャンセル"
+          },
+          {
+            "role": "button",
+            "name": "定期おトク便をキャンセル"
+          },
+          {
+            "text": "定期おトク便をキャンセル"
+          },
+          {
+            "text": "この商品の定期おトク便をキャンセル"
+          },
+          {
+            "text": "定期購入をキャンセル"
+          },
+          {
+            "css": "a[href*='cancel' i]"
+          },
+          {
+            "text": "キャンセル",
+            "regex": true
+          }
+        ]
+      },
+      {
+        "description": "キャンセル理由を選ぶ（あれば）",
+        "scope": "page",
+        "action": "chooseReason",
+        "optional": true,
+        "waitAfter": 800,
+        "target": [
+          {
+            "css": "select[name*=\"reason\" i]"
+          },
+          {
+            "css": "select[id*=\"reason\" i]"
+          },
+          {
+            "css": "input[type=\"radio\"][name*=\"reason\" i]"
+          },
+          {
+            "css": "input[type=\"radio\"]"
+          }
+        ]
+      },
+      {
+        "description": "確認ダイアログで最終確定",
+        "scope": "page",
+        "action": "click",
+        "optional": false,
+        "waitAfter": 2500,
+        "target": [
+          {
+            "role": "button",
+            "name": "定期おトク便をキャンセル"
+          },
+          {
+            "role": "button",
+            "name": "キャンセルを確定"
+          },
+          {
+            "role": "button",
+            "name": "定期購入をキャンセル"
+          },
+          {
+            "text": "定期おトク便をキャンセル"
+          },
+          {
+            "text": "キャンセルを確定"
+          },
+          {
+            "text": "はい、キャンセルします"
+          },
+          {
+            "css": "input[type='submit'][value*='キャンセル' i]"
+          },
+          {
+            "css": "form[action*='cancel' i] input[type='submit']"
+          },
+          {
+            "css": "form[action*='cancel' i] button[type='submit']"
+          }
+        ],
+        "pointOfNoReturn": true
+      }
+    ],
+    "successMarkers": [
+      {
+        "text": "キャンセルされました"
+      },
+      {
+        "text": "キャンセルが完了"
+      },
+      {
+        "text": "定期おトク便をキャンセルしました"
+      },
+      {
+        "text": "has been cancelled"
+      }
+    ],
+    "reasonPreference": [
+      "その他",
+      "商品が必要なくなった",
+      "必要なくなった",
+      "十分な在庫がある"
+    ]
+  },
+  "skip": {
+    "label": "次回分をスキップ",
+    "steps": [
+      {
+        "description": "カード内の「設定を変更」メニューを開く（あれば）",
+        "scope": "card",
+        "action": "click",
+        "optional": true,
+        "waitAfter": 1200,
+        "target": [
+          {
+            "text": "定期おトク便の設定を変更"
+          },
+          {
+            "text": "設定を変更"
+          },
+          {
+            "css": ".a-expander-prompt"
+          }
+        ]
+      },
+      {
+        "description": "「次回のお届けをスキップ」を押す",
+        "scope": "cardThenPage",
+        "action": "click",
+        "optional": false,
+        "waitAfter": 2000,
+        "target": [
+          {
+            "role": "button",
+            "name": "次回のお届けをスキップ"
+          },
+          {
+            "role": "link",
+            "name": "次回のお届けをスキップ"
+          },
+          {
+            "text": "次回のお届けをスキップ"
+          },
+          {
+            "text": "次回の配送をスキップ"
+          },
+          {
+            "text": "今回はスキップ"
+          },
+          {
+            "text": "スキップ",
+            "regex": true
+          },
+          {
+            "css": "a[href*='skip' i], button[data-action*='skip' i]"
+          }
+        ],
+        "pointOfNoReturn": true
+      },
+      {
+        "description": "確認ダイアログがあれば確定",
+        "scope": "page",
+        "action": "click",
+        "optional": true,
+        "waitAfter": 2000,
+        "target": [
+          {
+            "role": "button",
+            "name": "スキップを確定"
+          },
+          {
+            "text": "スキップを確定"
+          },
+          {
+            "text": "はい、スキップします"
+          },
+          {
+            "css": "form[action*='skip' i] input[type='submit']"
+          },
+          {
+            "css": "form[action*='skip' i] button[type='submit']"
+          }
+        ],
+        "pointOfNoReturn": true
+      }
+    ],
+    "successMarkers": [
+      {
+        "text": "スキップされました"
+      },
+      {
+        "text": "スキップしました"
+      },
+      {
+        "text": "次回のお届けをスキップ済み"
+      }
+    ]
+  }
+}
