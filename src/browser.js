@@ -84,9 +84,14 @@ export async function isLoggedOut(page, sel) {
   return await anyPresent(page, sel.auth.loggedOutMarkers, { timeout: 1200 });
 }
 
-/** ネットワークが落ち着くまで待つ（Amazonは遅延描画が多いため） */
-export async function settle(page, ms = 1200) {
-  await page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
+/**
+ * ネットワークが落ち着くまで待つ（Amazonは遅延描画が多いため）。
+ * 実際のAmazonページは広告/おすすめウィジェットが常時通信しており"networkidle"には
+ * ほぼ到達しないため、ここは短く諦めて後続の要素ポーリング(anyPresent/resolveFirst)に
+ * 任せる。ここを長くしても正確性は上がらず、体感速度だけが落ちる。
+ */
+export async function settle(page, ms = 400) {
+  await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {});
   await sleep(ms);
 }
 
@@ -100,10 +105,10 @@ export async function scrollToBottom(page) {
     });
     if (h === last) break;
     last = h;
-    await sleep(600);
+    await sleep(350);
   }
   await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(400);
+  await sleep(250);
 }
 
 /** デバッグ用に現在の画面を保存 */

@@ -11,8 +11,10 @@ description: Amazon定期おトク便キャンセルCLI(teiki)が「要素が見
 
 ## 参考: 2026-08-30時点で確認した実際の画面構造
 
-claude-in-chromeで実際のamazon.co.jpにログインして確認した構造（確定ボタンは
-一度もクリックしていない）。`config/selectors.json` の現行の値はこれに基づく。
+claude-in-chromeで実際のamazon.co.jpにログインして確認した構造。`config/selectors.json`
+の現行の値はこれに基づく。同日、実アカウントで `list` と `manage`（`--dry-run`での
+到達確認、および実際の解約1件）の成功を確認済み。スキップ操作は実アカウントでは
+未確認。
 
 - `/auto-deliveries` のデフォルト表示は「配送日ごとのタブ」で、商品ごとの管理一覧は
   下にスクロールした「ご利用のサブスクリプション」セクション
