@@ -52,8 +52,12 @@ npm run manage
 
 ### 全商品に同じ操作をしたいとき（`cancel` / `skip`）
 
+まず `npm run list` で今の商品名・番号を確認してから、以下のように使います
+（`--filter` に渡す文字列は、`list` の出力に実際に出てくる商品名の一部に
+置き換えてください。例のままでは自分の商品名と一致せず0件になります）。
+
 ```bash
-# 一覧表示
+# 一覧表示（番号と商品名を確認する）
 npm run list
 
 # 対話的に選んで解約（チェックボックスで選択）
@@ -62,11 +66,11 @@ npm run start -- cancel
 # 全商品を対象に、確定の手前まで動作確認（実際には解約しない）
 npm run start -- cancel --all --dry-run
 
-# 番号指定でスキップ（1,3,5〜7番目）
+# 番号指定でスキップ（listで表示された1,3,5〜7番目）
 npm run start -- skip --index 1,3,5-7
 
-# 商品名で絞り込んで一括解約（確認プロンプトなし）
-npm run start -- cancel --filter "ティシュー" --all --yes
+# 商品名で絞り込んで一括解約（例: listに「◯◯ ティッシュー 5箱」があれば--filter "ティッシュー"）
+npm run start -- cancel --filter "<listで見た商品名の一部>" --all --yes
 ```
 
 解約を2件以上まとめて実行する場合は、実行前に `CANCEL` という文字列の入力を
