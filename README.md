@@ -1,5 +1,7 @@
 # amazon-teiki-canceler
 
+[紹介ページ](https://takumin29.github.io/amazon-teiki-canceler/)
+
 Amazonの「定期おトク便」を、任意の商品またはすべての商品について
 **一括で解約 (cancel)** できるツールです。
 
