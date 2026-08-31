@@ -289,9 +289,8 @@
 
   /* -------------------------------------------------------------- stubs */
   .stub-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 640px;
   }
-  @media (max-width: 860px) { .stub-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .stub-grid { grid-template-columns: 1fr; } }
 
   .feat {
@@ -457,7 +456,7 @@
             <div class="dot"></div>
             <div class="idx">STOP 03</div>
             <h3>実行する</h3>
-            <p>「テスト実行」を付けたまま導線を確認し、問題なければ外して本番実行。解約2件以上は文字入力での再確認も。</p>
+            <p>選んだ内容を確認してから実行します。</p>
           </div>
         </div>
       </div>
@@ -468,7 +467,7 @@
     <div class="rail">
       <div class="section-head">
         <div class="eyebrow">FARE TABLE / できること</div>
-        <h2>5枚の切符に、できることをまとめました。</h2>
+        <h2>2枚の切符に、できることをまとめました。</h2>
       </div>
 
       <div class="stub-grid">
@@ -482,21 +481,6 @@
           <h3>個別に解約</h3>
           <p>商品ごとにチェックして、まとめて実行。全部を同じ操作にする必要はありません。</p>
         </div>
-        <div class="feat">
-          <div class="idx">03 ／ DRY-RUN</div>
-          <h3>テスト実行</h3>
-          <p>確定ボタンの手前で必ず立ち止まる、既定でONのモード。導線の確認だけなら何も実行されません。</p>
-        </div>
-        <div class="feat">
-          <div class="idx">04 ／ GUARD</div>
-          <h3>誤操作防止</h3>
-          <p>ブラウザが別のページに移動していたら、実行前に自動で検知して中止します。無関係な商品を巻き込みません。</p>
-        </div>
-        <div class="feat">
-          <div class="idx">05 ／ SPEED</div>
-          <h3>高速化</h3>
-          <p>一覧の読み込みを高速化。待たされてイライラする時間を減らしました。</p>
-        </div>
       </div>
     </div>
   </section>
@@ -506,7 +490,7 @@
       <div class="fineprint">
         <h2><span class="mark">※</span>ご利用にあたって</h2>
         <ul>
-          <li><strong>解約は元に戻せません。</strong>再度利用するには登録し直しが必要です。まずテスト実行で導線を確認してから実行してください。</li>
+          <li><strong>解約は元に戻せません。</strong>再度利用するには登録し直しが必要です。内容をよく確認してから実行してください。</li>
           <li>ログイン情報はお使いのパソコンにのみ保存され、外部には送信されません。</li>
           <li>Amazonの利用規約の範囲内で、ご自身のアカウントの定期おトク便を管理する目的でのみご利用ください。</li>
           <li>本ツールは非公式な自動操作です。利用規約違反とみなされアカウントが停止・制限される可能性があります。ご利用により生じた損害について作成者は責任を負いません。自己責任でご利用ください。</li>
