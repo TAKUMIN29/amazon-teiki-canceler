@@ -9,6 +9,12 @@ on:
 permissions:
   contents: write
 
+# 短時間に連続でpushすると前の実行が残ってしまうため、同じブランチへの
+# 新しいpushが来たら古い実行中のジョブは自動でキャンセルする。
+concurrency:
+  group: dev-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
