@@ -1,12 +1,17 @@
 # amazon-teiki-canceler
 
 Amazonの「定期おトク便」を、任意の商品またはすべての商品について
-**一括で解約 (cancel) / 次回スキップ (skip)** できるCLIツールです。
+**一括で解約 (cancel) / 次回スキップ (skip)** できるツールです。
 
-Amazonに定期おトク便を操作する公開APIは無いため、Playwrightでログイン済みの
-実Chromeを操作する形で実現しています。操作対象のDOM構造は
-[`config/selectors.json`](./config/selectors.json) に外出ししてあるので、
-Amazon側の画面が変わってもロジック本体（`src/`）を直す必要は基本的にありません。
+- **デスクトップアプリ（GUI）** — インストーラをダブルクリックするだけで使える。
+  ターミナル操作は不要。IT初心者向け。
+- **CLI** — ターミナルから `npm run manage` 等で操作する。開発者・自動化向け。
+
+どちらも中身は同じロジック（Playwrightでログイン済みの実Chromeを操作する形）を
+使っています。Amazonに定期おトク便を操作する公開APIは無いため、この方式で
+実現しています。操作対象のDOM構造は[`config/selectors.json`](./config/selectors.json)
+に外出ししてあるので、Amazon側の画面が変わってもロジック本体（`src/`）を直す
+必要は基本的にありません。
 
 > **動作確認について**: `config/selectors.json` は2026-08-30にclaude-in-chromeで
 > 実際のamazon.co.jpにログインして確認したDOM構造をもとに作成しています。
@@ -15,7 +20,29 @@ Amazon側の画面が変わってもロジック本体（`src/`）を直す必�
 > 確認していないため、初めて使う際は念のため `--dry-run` で到達確認してから
 > 実行することを推奨します。
 
-## できること
+## デスクトップアプリ（GUI）を使う
+
+ターミナルを使わずに使いたい方はこちら。
+
+1. [Releases](https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest) から
+   `定期おトク便かんたん解約 Setup x.x.x.exe` をダウンロード
+2. ダブルクリックしてインストール（Node.jsのインストールは不要）
+3. アプリを起動し、「ログインする」ボタンから普段通りAmazonにログイン
+4. 一覧から商品ごとに「何もしない / 次回スキップ / 解約する」を選んで実行
+
+動作にはお使いのパソコンに**Google Chromeがインストールされている**必要があります。
+「テスト実行」チェックボックス（既定でON）を付けたまま試すと、実際には解約/スキップ
+されずに導線だけ確認できます。
+
+> `main`ブランチに変更が入るたびに自動ビルドされる開発版テストビルド
+> （[dev-build](https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/tag/dev-build)）
+> もありますが、これは動作確認用のプレリリースです。通常の利用は上記の正式リリース
+> （バージョン番号が付いたもの）をお使いください。
+
+## できること（CLI）
+
+以下はターミナルから使う場合のコマンドです。GUIアプリでは同等の操作がすべて
+ボタンで行えます。
 
 - `manage` — 一覧を見ながら、**商品ごとに**「何もしない/スキップ/解約」を選び、まとめて実行
   （用意した中で最も直感的な使い方。基本はこれを使えばOK）
@@ -26,7 +53,7 @@ Amazon側の画面が変わってもロジック本体（`src/`）を直す必�
 - `cancel`/`skip` は `--index` / `--filter` / 対話選択（チェックボックス）のいずれでも対象を選べる
 - 実行結果は `logs/` に、失敗時の画面キャプチャは `out/` に自動保存
 
-## 動作環境
+## 動作環境（CLI）
 
 - Node.js 20以上
 - Google Chrome（未インストールなら `npx playwright install chromium` で代替可）
@@ -35,7 +62,10 @@ Amazon側の画面が変わってもロジック本体（`src/`）を直す必�
 Windows（コマンドプロンプト、PowerShell）とmacOS/Linux（bash、zsh）のどちらでも、
 以下のコマンドはそのまま同じ形で使えます。
 
-## セットアップ
+GUIアプリ（Windows向けインストーラ）はNode.jsのインストールは不要で、
+Google Chromeのみ必要です。
+
+## セットアップ（CLI）
 
 ```bash
 npm install
@@ -48,7 +78,7 @@ Google Chromeが入っていない場合は、先に `npx playwright install chr
 ログイン情報は `.profile/`（このリポジトリ配下の永続プロファイル）に保存されます。
 2回目以降は `npm run login` を実行し直す必要はありません。
 
-## 使い方
+## 使い方（CLI）
 
 ### 商品ごとにスキップ/解約を選ぶ（`manage`）
 
@@ -111,6 +141,16 @@ ASIN/購読IDが入っている、等）を再現したものですが、実際�
 npm test
 ```
 
+## GUIアプリの開発
+
+```bash
+npm run electron    # 開発モードで起動（.profile/ をCLIと共有）
+npm run dist         # Windows向けインストーラをビルド（dist/ に出力）
+```
+
+`electron/`配下のUIは`src/`のロジックをそのまま再利用しており、CLI側と挙動が
+分かれることはありません（詳細は`electron/orchestrator.js`を参照）。
+
 ## ディレクトリ構成
 
 ```
@@ -121,6 +161,11 @@ src/
   actions.js    設定ファイルのステップ列を実行するエンジン
   locator.js    セレクタ仕様(JSON) → Playwright Locator への変換
   ui.js         ターミナルの一覧表示・選択・確認プロンプト
+electron/
+  main.cjs        Electronメインプロセス（IPC・ウィンドウ管理）
+  preload.cjs      contextBridgeでレンダラーにAPIを公開
+  orchestrator.js  src/のロジックをGUI向けに呼び出す層
+  renderer/        画面（HTML/CSS/JS、フレームワーク無し）
 config/
   selectors.json  Amazon画面のDOM依存部分をまとめた設定（要調整はここだけ）
 test/
