@@ -1,6 +1,11 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('node:path');
 
+// このアプリはアニメーションの少ない単純なフォームUIで、GPU描画を必要としない。
+// GPUプロセスを起動しないことでメモリ使用量を抑える(WindowsではGPUの
+// シェーダーキャッシュ書き込みに失敗する環境もあり、その回避にもなる)。
+app.disableHardwareAcceleration();
+
 let mainWindow;
 let orchestrator;
 let quitting = false;
