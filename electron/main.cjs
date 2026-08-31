@@ -81,11 +81,14 @@ function registerIpcHandlers() {
   ipcMain.handle('teiki:run-plan', async (_event, { entries, dryRun }) => {
     mainWindow.__busy = true;
     try {
-      const results = await orchestrator.runPlan(entries, { dryRun }, (progress) => {
+      const r = await orchestrator.runPlan(entries, { dryRun }, (progress) => {
         mainWindow.webContents.send('teiki:run-progress', progress);
       });
-      const logFile = orchestrator.writeLog('manage', dryRun, results);
-      return { ok: true, results, logFile };
+      if (!r.ok) {
+        return { ok: false, reason: r.reason, currentUrl: r.currentUrl };
+      }
+      const logFile = orchestrator.writeLog('manage', dryRun, r.results);
+      return { ok: true, results: r.results, logFile };
     } catch (err) {
       return { ok: false, message: err.message };
     } finally {

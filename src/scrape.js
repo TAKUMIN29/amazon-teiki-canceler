@@ -6,18 +6,33 @@ import { scrollToBottom, settle, anyPresent } from './browser.js';
  * 設定セレクタで見つからない場合は、商品リンクから祖先をたどるヒューリスティックに落ちる。
  * @returns {Promise<{count:number, strategy:string}>}
  */
-async function markCards(page, cardSpecs) {
+async function markCards(page, cardSpecs, editTriggerSpecs) {
   const cssCandidates = cardSpecs.filter((s) => s.css).map((s) => s.css);
+  // 定期おトク便のカードには必ず「編集」トリガー要素がある。おすすめ商品の
+  // カルーセルなど無関係なブロックは、商品リンク/画像や「配送」等の単語を
+  // 含んでいても編集トリガーは持たないため、これを必須条件にして誤検出を防ぐ。
+  const editTriggerCss = (editTriggerSpecs ?? []).filter((s) => s.css).map((s) => s.css);
 
-  return await page.evaluate((cssList) => {
+  return await page.evaluate(({ cssList, editTriggerCssList }) => {
     document.querySelectorAll('[data-teiki-card]').forEach((el) => el.removeAttribute('data-teiki-card'));
+
+    const hasEditTrigger = (el) => {
+      if (editTriggerCssList.length === 0) return true; // 設定が無ければ従来通り
+      return editTriggerCssList.some((css) => {
+        try {
+          return !!el.querySelector(css);
+        } catch {
+          return false;
+        }
+      });
+    };
 
     const looksLikeCard = (el) => {
       if (!el || !el.querySelector) return false;
       const t = el.innerText || '';
       const hasProduct = !!el.querySelector('a[href*="/dp/"], a[href*="/gp/product/"], img');
       const hasSubWords = /定期|お届け|スキップ|キャンセル|配送|配達/.test(t);
-      return hasProduct && hasSubWords && t.length > 15 && t.length < 4000;
+      return hasProduct && hasSubWords && hasEditTrigger(el) && t.length > 15 && t.length < 4000;
     };
 
     // --- 戦略1: 設定ファイルのCSSセレクタ ---
@@ -35,54 +50,68 @@ async function markCards(page, cardSpecs) {
       }
     }
 
-    // --- 戦略2: 商品ごとに一意な要素（dpリンク優先／無ければimg[alt]）の祖先をたどる ---
+    // --- 戦略2: 商品ごとに一意な要素（dpリンク／img[alt]）の祖先をたどる ---
     // Amazonの新UI(2026年時点)ではカードに<a>が無く、img[alt]しか手がかりが無いことがある。
+    // ページ内のどこか（おすすめ商品など）にdpリンクが1つでもあると、
+    // 以前はそれだけでページ全体の戦略が「img[alt]」から「dpリンク」に切り替わってしまい、
+    // 本来<a>を持たない定期おトク便のカードが1件も見つからなくなる問題があった。
+    // そのため、両方の候補群それぞれで祖先探索を行い、結果をマージする。
     const asinOf = (href) => (href.match(/\/(?:dp|product)\/([A-Z0-9]{10})/) || [])[1] || null;
-    const dpAnchors = Array.from(document.querySelectorAll('a[href*="/dp/"], a[href*="/gp/product/"]'));
 
-    let uniqueSelector, keyOf, entries;
-    if (dpAnchors.length > 0) {
-      uniqueSelector = 'a[href*="/dp/"], a[href*="/gp/product/"]';
-      keyOf = (el) => asinOf(el.getAttribute('href') || '');
-      const byKey = new Map();
-      for (const a of dpAnchors) {
-        const k = keyOf(a);
-        if (!k || byKey.has(k)) continue;
-        byKey.set(k, a);
+    function collect(uniqueSelector, keyOf, entries) {
+      const found = [];
+      for (const anchor of entries) {
+        let node = anchor;
+        let best = null;
+        for (let depth = 0; depth < 12 && node.parentElement; depth++) {
+          node = node.parentElement;
+          if (node === document.body) break;
+          // 別商品まで巻き込んだら、その手前で止める
+          const keysInNode = new Set(
+            Array.from(node.querySelectorAll(uniqueSelector)).map(keyOf).filter(Boolean)
+          );
+          if (keysInNode.size > 1) break;
+          if (looksLikeCard(node)) best = node;
+        }
+        if (best) found.push(best);
       }
-      entries = Array.from(byKey.values());
-    } else {
-      uniqueSelector = 'img[alt]';
-      keyOf = (el) => (el.getAttribute('alt') || '').trim() || null;
-      const byKey = new Map();
-      for (const img of document.querySelectorAll(uniqueSelector)) {
-        const k = keyOf(img);
-        if (!k || k.length < 4 || byKey.has(k)) continue;
-        byKey.set(k, img);
-      }
-      entries = Array.from(byKey.values());
+      return found;
     }
 
+    const dpAnchors = Array.from(document.querySelectorAll('a[href*="/dp/"], a[href*="/gp/product/"]'));
+    const dpKeyOf = (el) => asinOf(el.getAttribute('href') || '');
+    const dpByKey = new Map();
+    for (const a of dpAnchors) {
+      const k = dpKeyOf(a);
+      if (!k || dpByKey.has(k)) continue;
+      dpByKey.set(k, a);
+    }
+    const dpCards = collect('a[href*="/dp/"], a[href*="/gp/product/"]', dpKeyOf, Array.from(dpByKey.values()));
+
+    const imgKeyOf = (el) => (el.getAttribute('alt') || '').trim() || null;
+    const imgByKey = new Map();
+    for (const img of document.querySelectorAll('img[alt]')) {
+      const k = imgKeyOf(img);
+      if (!k || k.length < 4 || imgByKey.has(k)) continue;
+      imgByKey.set(k, img);
+    }
+    const imgCards = collect('img[alt]', imgKeyOf, Array.from(imgByKey.values()));
+
     const cards = [];
-    for (const anchor of entries) {
-      let node = anchor;
-      let best = null;
-      for (let depth = 0; depth < 12 && node.parentElement; depth++) {
-        node = node.parentElement;
-        if (node === document.body) break;
-        // 別商品まで巻き込んだら、その手前で止める
-        const keysInNode = new Set(
-          Array.from(node.querySelectorAll(uniqueSelector)).map(keyOf).filter(Boolean)
-        );
-        if (keysInNode.size > 1) break;
-        if (looksLikeCard(node)) best = node;
+    let usedStrategies = [];
+    for (const [label, found] of [['anchor', dpCards], ['img-alt', imgCards]]) {
+      let added = 0;
+      for (const best of found) {
+        if (cards.some((c) => c.contains(best) || best.contains(c))) continue;
+        cards.push(best);
+        added++;
       }
-      if (best && !cards.some((c) => c.contains(best) || best.contains(c))) cards.push(best);
+      if (added > 0) usedStrategies.push(label);
     }
 
     cards.forEach((el, i) => el.setAttribute('data-teiki-card', String(i)));
-    return { count: cards.length, strategy: `heuristic:${dpAnchors.length > 0 ? 'anchor' : 'img-alt'}-ancestor` };
-  }, cssCandidates);
+    return { count: cards.length, strategy: `heuristic:${usedStrategies.join('+') || 'none'}-ancestor` };
+  }, { cssList: cssCandidates, editTriggerCssList: editTriggerCss });
 }
 
 /** カード要素から購読IDらしきものを拾う */
@@ -134,7 +163,7 @@ export async function listSubscriptions(page, sel) {
     return { items: [], strategy: 'empty-marker', empty: true };
   }
 
-  const { count, strategy } = await markCards(page, sel.list.card);
+  const { count, strategy } = await markCards(page, sel.list.card, sel.list.editTrigger);
   const items = [];
 
   for (let i = 0; i < count; i++) {

@@ -49,8 +49,8 @@ await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 const sel = loadSelectors();
 const { ctx, page } = await launch({ headless: true });
 
-async function openList(mode) {
-  await page.goto(`${BASE}/auto-deliveries${mode ? `?mode=${mode}` : ''}`, { waitUntil: 'domcontentloaded' });
+async function openList(query) {
+  await page.goto(`${BASE}/auto-deliveries${query ? `?${query}` : ''}`, { waitUntil: 'domcontentloaded' });
   await settle(page, 300);
   return listSubscriptions(page, sel);
 }
@@ -76,12 +76,26 @@ try {
 
   /* ---------- 2. 目印なし(plain)の抽出 ---------- */
   console.log('\n[2] 一覧の抽出 — コンテナidが無い（ヒューリスティック経路）');
-  r = await openList('plain');
+  r = await openList('mode=plain');
   check('5件すべて検出できる', r.items.length === 5, `検出: ${r.items.length}件`);
   check('img[alt]起点のヒューリスティックが使われる', r.strategy === 'heuristic:img-alt-ancestor', `strategy=${r.strategy}`);
   check('商品名が取れる', r.items[2].title.includes('サントリー天然水'), r.items[2].title);
   check('カードが入れ子になっていない', new Set(r.items.map((i) => i.asin)).size === 5);
   check('ヒューリスティック経路でもASINが取れる', r.items[2].asin === 'B09QWER890', String(r.items[2].asin));
+
+  /* ---------- 2.5. ヒューリスティック経路で無関係な「おすすめ商品」を誤検出しない ---------- */
+  console.log('\n[2.5] 一覧の抽出 — ヒューリスティック経路で「おすすめ商品」枠を誤って拾わない');
+  r = await openList('mode=plain&promo=1');
+  check(
+    '「おすすめ商品」を含めず定期おトク便の5件だけを検出する',
+    r.items.length === 5,
+    `検出: ${r.items.length}件 — ${JSON.stringify(r.items.map((i) => i.title))}`
+  );
+  check(
+    'おすすめ商品(Kindle Paperwhite)が混ざっていない',
+    !r.items.some((i) => (i.title ?? '').includes('Kindle Paperwhite')),
+    JSON.stringify(r.items.map((i) => i.title))
+  );
 
   /* ---------- 3. dry-run は実行しない ---------- */
   console.log('\n[3] dry-run — 確定の手前で止まる');

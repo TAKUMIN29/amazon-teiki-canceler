@@ -52,8 +52,24 @@ function card(s) {
   </div>`;
 }
 
-function pageHtml(banner, plain) {
+/**
+ * 実際のAmazon画面で見つかった不具合の再現用: 定期おトク便とは無関係な
+ * 「おすすめ商品」枠。img[alt]や商品リンク、「配送」等の単語を含むため、
+ * 緩いヒューリスティックだけだと定期おトク便のカードと誤認してしまう。
+ * data-edit-link（編集トリガー）は持たない — 本物のカードとの決定的な違い。
+ */
+function promoCard() {
+  return `
+  <div class="a-carousel-card">
+    <img alt="Kindle Paperwhite シグニチャーエディション" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+    <span class="a-size-small a-color-secondary">過去1か月で2000点以上購入されました　配送料無料</span>
+    <a class="a-link-normal" href="/dp/B0FAKE1234">￥32,980</a>
+  </div>`;
+}
+
+function pageHtml(banner, plain, promo) {
   const cards = subs.map(card).join('\n');
+  const promoBlock = promo ? promoCard() : '';
   // plain=true: コンテナのid/構造だけをリニューアルした想定（操作に必要なdata属性は残す）
   const gridOpen = plain ? '<div class="subs-grid">' : '<div id="subscriptionsDesktopGridLayout">';
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>配達を管理</title>
@@ -73,6 +89,7 @@ img{width:60px;height:60px;background:#eee;display:block}
 <div id="nav-link-accountList">アカウント＆リスト</div>
 <h1>定期おトク便</h1>
 ${banner ? `<div id="banner">${esc(banner)}</div>` : ''}
+${promo ? `<h2>おすすめの商品</h2><div class="promo-row">${promoBlock}</div>` : ''}
 ${subs.length === 0
     ? '<p>定期おトク便の登録はありません</p>'
     : `<h2>ご利用のサブスクリプション</h2>${gridOpen}${cards}</div>`}
@@ -195,7 +212,8 @@ export function createServer() {
 
     if (url.pathname === '/auto-deliveries' && req.method === 'GET') {
       const plain = url.searchParams.get('mode') === 'plain';
-      return send(pageHtml(url.searchParams.get('msg'), plain));
+      const promo = url.searchParams.get('promo') === '1';
+      return send(pageHtml(url.searchParams.get('msg'), plain, promo));
     }
     if (url.pathname === '/auto-deliveries/cancel' && req.method === 'POST') {
       const b = await readBody(req);

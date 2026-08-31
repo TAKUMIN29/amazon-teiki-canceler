@@ -129,6 +129,26 @@ export async function gotoSubscriptions(page, sel) {
   return { ok: true };
 }
 
+/**
+ * 現在のページが定期おトク便の管理ページ（本来のURLかフォールバックURL）かどうか。
+ * ブラウザが手動操作等で別のページに移動していると、一覧抽出が別コンテンツ
+ * （おすすめ商品など）を誤って拾ってしまうため、実行前にこれで確認する。
+ */
+export function isSubscriptionsUrl(url, sel) {
+  const samePage = (a, b) => {
+    try {
+      const ua = new URL(a);
+      const ub = new URL(b);
+      return ua.origin === ub.origin && ua.pathname.replace(/\/$/, '') === ub.pathname.replace(/\/$/, '');
+    } catch {
+      return false;
+    }
+  };
+  if (samePage(url, sel.urls.subscriptions)) return true;
+  if (sel.urls.subscriptionsFallback && samePage(url, sel.urls.subscriptionsFallback)) return true;
+  return false;
+}
+
 export async function isLoggedOut(page, sel) {
   if (/\/ap\/signin/.test(page.url())) return true;
   return await anyPresent(page, sel.auth.loggedOutMarkers, { timeout: 1200 });

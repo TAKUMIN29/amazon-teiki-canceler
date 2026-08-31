@@ -10,6 +10,7 @@ import {
   OUT_DIR,
   LOGS_DIR,
   classifyLaunchFailure,
+  isSubscriptionsUrl,
 } from '../src/browser.js';
 import { listSubscriptions, refresh } from '../src/scrape.js';
 import { runSteps } from '../src/actions.js';
@@ -89,6 +90,13 @@ export async function getList() {
 export async function runPlan(requestedEntries, { dryRun } = {}, onProgress = () => {}) {
   const { page, sel } = await ensureSession();
 
+  // ブラウザが手動操作などで管理ページから移動していると、一覧抽出が別の
+  // コンテンツ（おすすめ商品など）を誤って拾ってしまう。実行前に必ず確認し、
+  // 違うページなら実行せずに警告を返す。
+  if (!isSubscriptionsUrl(page.url(), sel)) {
+    return { ok: false, reason: 'wrong-page', currentUrl: page.url() };
+  }
+
   // 選択してから実行するまでの間に画面の状態が変わっている可能性があるため、
   // 実行直前に一覧を取り直してから現物と突き合わせる。
   const { items: freshItems } = await listSubscriptions(page, sel);
@@ -138,7 +146,7 @@ export async function runPlan(requestedEntries, { dryRun } = {}, onProgress = ()
     }
   }
 
-  return results;
+  return { ok: true, results };
 }
 
 export function writeLog(kind, dryRun, results) {

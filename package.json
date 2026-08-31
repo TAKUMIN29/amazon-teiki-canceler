@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "description": "Amazon定期おトク便を一括でキャンセル/スキップするCLI/デスクトップアプリ",
   "license": "MIT",
+  "author": "TAKUMIN29",
   "type": "module",
   "main": "electron/main.cjs",
   "bin": {
@@ -19,7 +20,7 @@
     "test": "node test/run-tests.js",
     "mock": "node test/mock-amazon.js",
     "electron": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win --publish never"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.2.1",

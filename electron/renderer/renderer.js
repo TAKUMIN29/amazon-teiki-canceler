@@ -258,13 +258,28 @@ async function runPlan(entries, dryRun) {
   showScreen('progress');
   const logEl = document.getElementById('progress-log');
   const currentEl = document.getElementById('progress-current');
+  const backBtn = document.getElementById('btn-progress-back');
   logEl.innerHTML = '';
   currentEl.textContent = '';
+  currentEl.classList.remove('warning-text');
+  backBtn.hidden = true;
 
   const r = await window.teiki.runPlan(entries, dryRun);
 
   if (!r.ok) {
-    currentEl.textContent = `エラーが発生しました: ${r.message}`;
+    currentEl.classList.add('warning-text');
+    if (r.reason === 'wrong-page') {
+      currentEl.textContent =
+        'ブラウザが定期おトク便の管理ページとは別のページに移動しているため、実行を中止しました。' +
+        '操作は何も行われていません。ブラウザの画面を確認し、一覧を開き直してから、もう一度お試しください。';
+      const li = document.createElement('li');
+      li.className = 'step';
+      li.textContent = `現在のページ: ${r.currentUrl}`;
+      logEl.appendChild(li);
+    } else {
+      currentEl.textContent = `エラーが発生しました: ${r.message}`;
+    }
+    backBtn.hidden = false;
     return;
   }
   renderResult(r.results, r.logFile);
@@ -339,6 +354,7 @@ function escapeHtml(s) {
 }
 
 document.getElementById('btn-back-to-list').addEventListener('click', refreshList);
+document.getElementById('btn-progress-back').addEventListener('click', refreshList);
 document.getElementById('btn-open-out-folder').addEventListener('click', () => window.teiki.openOutFolder());
 document.getElementById('btn-open-logs-folder').addEventListener('click', () => window.teiki.openLogsFolder());
 
