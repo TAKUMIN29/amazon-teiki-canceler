@@ -19,6 +19,7 @@
     "inspect": "node src/index.js inspect",
     "test": "node test/run-tests.js",
     "mock": "node test/mock-amazon.js",
+    "postinstall": "node node_modules/electron/install.js",
     "electron": "electron .",
     "dist": "electron-builder --win --publish never"
   },
@@ -29,8 +30,8 @@
     "playwright": "^1.49.1"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
   },
   "engines": {
     "node": ">=20"
@@ -58,6 +59,7 @@
     }
   },
   "allowScripts": {
-    "electron@33.4.11": true
+    "electron@44.0.0": true,
+    "electron-winstaller@5.4.0": true
   }
 }
