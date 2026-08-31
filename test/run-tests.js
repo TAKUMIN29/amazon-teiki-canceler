@@ -144,6 +144,10 @@ try {
   r = await openList();
   res = await runSteps(page, r.items[2], sel.skip, { dryRun: false });
   check('スキップが完了する', res.ok && res.status.startsWith('done'), `${res.status}: ${res.message}`);
+  // 実際のAmazonは「(商品名)の配達スケジュールが変更されました。」と表示する。
+  // この文言が successMarkers に無く、成功しているのに「成功メッセージは確認できず」
+  // と出てしまう不具合があったため、done-unverified で通らないようにしておく。
+  check('成功メッセージを検知できる', res.status === 'done', `${res.status}: ${res.message}`);
   s = await state();
   check('対象がスキップ済みになる', s.find((x) => x.sid === 'SUB-003')?.skipped === true, JSON.stringify(s.map((x) => [x.sid, x.skipped])));
   check('件数は減っていない（解約されていない）', s.length === 5, `${s.length}件`);

@@ -175,7 +175,9 @@ function openSkipModal(sid) {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: 'sid=' + encodeURIComponent(sid),
     });
-    if (res.ok) location.href = '/auto-deliveries?msg=' + encodeURIComponent('次回のお届けをスキップしました');
+    // 実際のAmazonは「(商品名)の配達スケジュールが変更されました。」という
+    // 商品名込みの文言を表示する（固定文言の「スキップしました」ではない）。
+    if (res.ok) location.href = '/auto-deliveries?msg=' + encodeURIComponent('この商品の配達スケジュールが変更されました。');
   });
 }
 

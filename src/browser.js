@@ -175,20 +175,26 @@ export async function settle(page, ms = 400) {
   await sleep(ms);
 }
 
-/** 遅延読み込みのカードを出しきるために最下部までスクロール */
+/**
+ * 遅延読み込みのカードを出しきるために最下部までスクロール。
+ * 広告/おすすめウィジェットが常時読み込まれているページでは、スクロール後の
+ * 高さが数px単位で揺れ続けて完全一致に至らず、毎回ワーストケース(旧: 最大25回
+ * ×350ms≒9秒)に近い時間がかかっていた。小さな変化までは「安定した」とみなして
+ * 早期終了することで、一覧取得の体感速度を改善する。
+ */
 export async function scrollToBottom(page) {
   let last = -1;
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 10; i++) {
     const h = await page.evaluate(() => {
       window.scrollTo(0, document.body.scrollHeight);
       return document.body.scrollHeight;
     });
-    if (h === last) break;
+    if (last >= 0 && Math.abs(h - last) < 50) break;
     last = h;
-    await sleep(350);
+    await sleep(200);
   }
   await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(250);
+  await sleep(150);
 }
 
 /** デバッグ用に現在の画面を保存 */

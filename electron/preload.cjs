@@ -1,11 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('teiki', {
-  getList: () => ipcRenderer.invoke('teiki:get-list'),
+  getList: (opts) => ipcRenderer.invoke('teiki:get-list', opts),
   startLogin: () => ipcRenderer.invoke('teiki:start-login'),
   onLoginStatus: (cb) => ipcRenderer.on('teiki:login-status', (_e, data) => cb(data)),
 
-  runPlan: (entries, dryRun) => ipcRenderer.invoke('teiki:run-plan', { entries, dryRun }),
+  runPlan: (entries, dryRun, headless) =>
+    ipcRenderer.invoke('teiki:run-plan', { entries, dryRun, headless }),
   onRunProgress: (cb) => ipcRenderer.on('teiki:run-progress', (_e, data) => cb(data)),
 
   resetBrowser: () => ipcRenderer.invoke('teiki:reset-browser'),

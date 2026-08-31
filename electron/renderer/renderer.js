@@ -23,11 +23,37 @@ function keyOf(item) {
   return item.asin ?? item.subscriptionId ?? item.title;
 }
 
+/**
+ * 「ブラウザを表示しない」設定。ONだと画面を出さずに裏で操作するので速いが、
+ * Amazonに自動操作と判定されやすくなる可能性があるため既定はOFF。
+ * ログイン時は認証操作が必要なので、この設定に関わらず必ず表示される。
+ */
+function isHeadless() {
+  return document.getElementById('headless-checkbox').checked;
+}
+
+// 設定はこのパソコンのこのアプリ内にだけ残す（次回起動時も選択を覚えておく）
+try {
+  const saved = localStorage.getItem('teiki:headless');
+  if (saved === '1') document.getElementById('headless-checkbox').checked = true;
+} catch {
+  /* プライベートウィンドウ等で使えなくても既定値で動く */
+}
+document.getElementById('headless-checkbox').addEventListener('change', (e) => {
+  try {
+    localStorage.setItem('teiki:headless', e.target.checked ? '1' : '0');
+  } catch {
+    /* 保存できなくても動作には影響しない */
+  }
+  // モードが変わるとブラウザを開き直す必要があるため、一覧を取り直す
+  refreshList();
+});
+
 /* ------------------------------------------------------------ 起動〜一覧取得 */
 
 async function refreshList() {
   showScreen('loading');
-  const r = await window.teiki.getList();
+  const r = await window.teiki.getList({ headless: isHeadless() });
 
   if (!r.ok) {
     if (r.reason === 'login') return showScreen('login');
@@ -264,7 +290,7 @@ async function runPlan(entries, dryRun) {
   currentEl.classList.remove('warning-text');
   backBtn.hidden = true;
 
-  const r = await window.teiki.runPlan(entries, dryRun);
+  const r = await window.teiki.runPlan(entries, dryRun, isHeadless());
 
   if (!r.ok) {
     currentEl.classList.add('warning-text');

@@ -114,34 +114,132 @@ async function markCards(page, cardSpecs, editTriggerSpecs) {
   }, { cssList: cssCandidates, editTriggerCssList: editTriggerCss });
 }
 
-/** カード要素から購読IDらしきものを拾う */
-async function readSubscriptionId(cardLoc, idAttrs) {
-  for (const attr of idAttrs) {
-    const v = await cardLoc.getAttribute(attr).catch(() => null);
-    if (v && /[A-Za-z0-9]/.test(v)) return clean(v);
-  }
-  return null;
+/**
+ * マーク済みの全カードから、全フィールドを「ブラウザ側で1回だけ」まとめて取り出す。
+ *
+ * 以前は1フィールドにつき候補ごとにPlaywrightのLocatorで往復していたため、
+ * 1商品あたり25回以上・商品10件で250回以上の往復が直列に発生し、一覧取得に
+ * 10秒近くかかっていた。ここで page.evaluate 1回に畳み込むことで往復は1回になる。
+ *
+ * 対応する候補仕様は css / xpath（+ attr, nth）のみ。text / role 指定は
+ * ブラウザ側で再現しないので unsupported として返し、Node側で従来の
+ * readValue にフォールバックする（config/selectors.json の list.fields は
+ * 現状すべて css/xpath なので、通常はフォールバックは発生しない）。
+ */
+async function extractCards(page, sel) {
+  const fieldNames = ['title', 'url', 'image', 'nextDelivery', 'quantity', 'frequency', 'price'];
+  const fieldSpecs = {};
+  for (const name of fieldNames) fieldSpecs[name] = sel.list.fields[name] ?? [];
+
+  return await page.evaluate(
+    ({ fieldSpecs, fieldNames, idAttributes, editUrlId }) => {
+      const clean = (s) => {
+        if (s == null) return null;
+        const t = String(s).replace(/\s+/g, ' ').trim();
+        return t.length ? t : null;
+      };
+
+      /** 1つの候補仕様を、カード配下で解決して値を返す。解決できなければ undefined。 */
+      function readSpec(card, spec) {
+        let el = null;
+        if (spec.css) {
+          let nodes;
+          try {
+            nodes = card.querySelectorAll(spec.css);
+          } catch {
+            return undefined;
+          }
+          el = nodes[typeof spec.nth === 'number' ? spec.nth : 0] ?? null;
+        } else if (spec.xpath) {
+          try {
+            const r = document.evaluate(spec.xpath, card, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            el = r.snapshotItem(typeof spec.nth === 'number' ? spec.nth : 0);
+          } catch {
+            return undefined;
+          }
+        } else {
+          return undefined; // text/role はブラウザ側では扱わない
+        }
+        if (!el) return undefined;
+        return clean(spec.attr ? el.getAttribute(spec.attr) : el.innerText);
+      }
+
+      /** 候補配列を上から順に試し、最初に値が取れたものを返す */
+      function readField(card, specs) {
+        let sawUnsupported = false;
+        for (const spec of specs) {
+          if (!spec.css && !spec.xpath) {
+            sawUnsupported = true;
+            continue;
+          }
+          const v = readSpec(card, spec);
+          if (v != null) return { value: v };
+        }
+        return { value: null, unsupported: sawUnsupported };
+      }
+
+      const out = [];
+      const cards = document.querySelectorAll('[data-teiki-card]');
+      for (const card of cards) {
+        const index = Number(card.getAttribute('data-teiki-card'));
+
+        const fields = {};
+        const needsFallback = [];
+        for (const name of fieldNames) {
+          const r = readField(card, fieldSpecs[name]);
+          fields[name] = r.value;
+          // 候補が全滅し、かつ扱えない指定(text/role)が混ざっていた場合だけ
+          // Node側の従来経路で取り直してもらう
+          if (r.value == null && r.unsupported) needsFallback.push(name);
+        }
+
+        // カード自身の属性から購読IDらしきものを拾う
+        let subscriptionId = null;
+        for (const attr of idAttributes) {
+          const v = clean(card.getAttribute(attr));
+          if (v && /[A-Za-z0-9]/.test(v)) {
+            subscriptionId = v;
+            break;
+          }
+        }
+
+        // 実際のAmazonでは data-edit-url が「カード要素そのもの」に付いている。
+        // querySelectorは子孫しか見ないため、まずカード自身の属性を確認する。
+        let editUrl = null;
+        if (editUrlId) {
+          editUrl = card.getAttribute(editUrlId.attr);
+          if (!editUrl) {
+            let el = null;
+            try {
+              el = card.querySelector(editUrlId.selector);
+            } catch {
+              el = null;
+            }
+            if (el) editUrl = el.getAttribute(editUrlId.attr);
+          }
+        }
+
+        // 候補が全滅したときの保険として、カード先頭行のテキストも渡しておく
+        const firstLine = clean((card.innerText || '').split('\n')[0]);
+
+        out.push({ index, fields, needsFallback, subscriptionId, editUrl, firstLine });
+      }
+      return out;
+    },
+    {
+      fieldSpecs,
+      fieldNames,
+      idAttributes: sel.list.idAttributes ?? [],
+      editUrlId: sel.list.editUrlId ?? null,
+    }
+  );
 }
 
-/**
- * 実際のAmazon画面ではカードに<a>が無く、ASIN/subscriptionIdを示すリンクが存在しない。
- * 代わりに編集ボタンの data-edit-url 属性のクエリ文字列に入っているので、そこから拾う。
- */
-async function readIdsFromEditUrl(cardLoc, editUrlId, baseUrl) {
-  if (!editUrlId) return { subscriptionId: null, asin: null };
-
-  // 実際のAmazonでは data-edit-url が「カード要素そのもの」に付いている。
-  // locator()は子孫しか探さないため、まずカード自身の属性を見てから子孫を探す。
-  let raw = await cardLoc.getAttribute(editUrlId.attr).catch(() => null);
-  if (!raw) {
-    const el = cardLoc.locator(editUrlId.selector).first();
-    if ((await el.count().catch(() => 0)) === 0) return { subscriptionId: null, asin: null };
-    raw = await el.getAttribute(editUrlId.attr).catch(() => null);
-  }
-  if (!raw) return { subscriptionId: null, asin: null };
-
+/** editUrl のクエリ文字列から subscriptionId / ASIN を取り出す */
+function parseEditUrl(rawUrl, editUrlId, baseUrl) {
+  if (!rawUrl || !editUrlId) return { subscriptionId: null, asin: null };
   try {
-    const u = new URL(raw, baseUrl);
+    const u = new URL(rawUrl, baseUrl);
     return {
       subscriptionId: u.searchParams.get(editUrlId.subscriptionIdParam) || null,
       asin: u.searchParams.get(editUrlId.asinParam) || null,
@@ -157,38 +255,51 @@ async function readIdsFromEditUrl(cardLoc, editUrlId, baseUrl) {
  */
 export async function listSubscriptions(page, sel) {
   await scrollToBottom(page);
-  await settle(page, 800);
+  await settle(page, 300);
 
-  if (await anyPresent(page, sel.list.emptyMarkers, { timeout: 1000 })) {
-    return { items: [], strategy: 'empty-marker', empty: true };
+  // カード検出を先に行う。「登録が無い」ことの確認(emptyMarkers)は候補が
+  // 見つからずタイムアウトまで待つ処理なので、商品がある通常時に毎回1秒
+  // 待たされていた。カードが1件も取れなかったときだけ確認すれば足りる。
+  const { count, strategy } = await markCards(page, sel.list.card, sel.list.editTrigger);
+  if (count === 0) {
+    if (await anyPresent(page, sel.list.emptyMarkers, { timeout: 1000 })) {
+      return { items: [], strategy: 'empty-marker', empty: true };
+    }
+    return { items: [], strategy, empty: true };
   }
 
-  const { count, strategy } = await markCards(page, sel.list.card, sel.list.editTrigger);
+  // 全カード・全フィールドをブラウザ側で1回にまとめて取得する（往復1回）
+  const raws = await extractCards(page, sel);
   const items = [];
 
-  for (let i = 0; i < count; i++) {
-    const card = page.locator(`[data-teiki-card="${i}"]`);
-    const f = sel.list.fields;
+  for (const raw of raws) {
+    const cardSelector = `[data-teiki-card="${raw.index}"]`;
+    const fields = { ...raw.fields };
 
-    const title =
-      (await readValue(card, f.title)) ??
-      clean((await card.innerText().catch(() => '')).split('\n')[0]);
+    // text/role 指定しか候補が無く、ブラウザ側で取れなかったフィールドだけ
+    // 従来のLocator経路で取り直す（通常は発生しない）
+    if (raw.needsFallback.length > 0) {
+      const card = page.locator(cardSelector);
+      for (const name of raw.needsFallback) {
+        fields[name] = await readValue(card, sel.list.fields[name] ?? []);
+      }
+    }
 
-    const idsFromUrl = await readIdsFromEditUrl(card, sel.list.editUrlId, sel.urls.base);
+    const ids = parseEditUrl(raw.editUrl, sel.list.editUrlId, sel.urls.base);
 
     const item = {
-      index: i + 1,
-      cardSelector: `[data-teiki-card="${i}"]`,
-      subscriptionId: idsFromUrl.subscriptionId ?? (await readSubscriptionId(card, sel.list.idAttributes)),
-      title: title ?? '(商品名を取得できませんでした)',
-      url: absolutize(await readValue(card, f.url), sel.urls.base),
-      image: await readValue(card, f.image),
-      nextDelivery: stripLabel(await readValue(card, f.nextDelivery)),
-      quantity: await readValue(card, f.quantity),
-      frequency: await readValue(card, f.frequency),
-      price: await readValue(card, f.price),
+      index: raw.index + 1,
+      cardSelector,
+      subscriptionId: ids.subscriptionId ?? raw.subscriptionId,
+      title: fields.title ?? raw.firstLine ?? '(商品名を取得できませんでした)',
+      url: absolutize(fields.url, sel.urls.base),
+      image: fields.image,
+      nextDelivery: stripLabel(fields.nextDelivery),
+      quantity: fields.quantity,
+      frequency: fields.frequency,
+      price: fields.price,
     };
-    item.asin = idsFromUrl.asin ?? (item.url?.match(/\/(?:dp|product)\/([A-Z0-9]{10})/) || [])[1] ?? null;
+    item.asin = ids.asin ?? (item.url?.match(/\/(?:dp|product)\/([A-Z0-9]{10})/) || [])[1] ?? null;
     items.push(item);
   }
 

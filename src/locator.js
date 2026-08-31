@@ -69,9 +69,15 @@ export async function anyPresent(root, specs, { timeout = 1500 } = {}) {
   return !!hit;
 }
 
-/** 仕様に attr が指定されていれば属性値、なければテキストを取り出す */
+/**
+ * 仕様に attr が指定されていれば属性値、なければテキストを取り出す。
+ * 呼び出し時点でカード自体はすでに描画済み（ページ遷移待ちではない）なので、
+ * 候補が無い場合に長時間ポーリングする意味は薄い。1商品につき最大7項目
+ * (title/url/image/nextDelivery/quantity/frequency/price)を毎回試すため、
+ * ここのタイムアウトは一覧取得全体の体感速度に直結する。
+ */
 export async function readValue(root, specs) {
-  const hit = await resolveFirst(root, specs, { timeout: 800, visible: false });
+  const hit = await resolveFirst(root, specs, { timeout: 300, visible: false });
   if (!hit) return null;
   try {
     if (hit.spec.attr) {

@@ -54,9 +54,9 @@ function createWindow() {
 }
 
 function registerIpcHandlers() {
-  ipcMain.handle('teiki:get-list', async () => {
+  ipcMain.handle('teiki:get-list', async (_event, opts) => {
     try {
-      const r = await orchestrator.getList();
+      const r = await orchestrator.getList({ headless: !!opts?.headless });
       return r;
     } catch (err) {
       return {
@@ -83,10 +83,10 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('teiki:run-plan', async (_event, { entries, dryRun }) => {
+  ipcMain.handle('teiki:run-plan', async (_event, { entries, dryRun, headless }) => {
     mainWindow.__busy = true;
     try {
-      const r = await orchestrator.runPlan(entries, { dryRun }, (progress) => {
+      const r = await orchestrator.runPlan(entries, { dryRun, headless: !!headless }, (progress) => {
         mainWindow.webContents.send('teiki:run-progress', progress);
       });
       if (!r.ok) {

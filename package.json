@@ -40,6 +40,7 @@
     "appId": "com.teiki-canceler.app",
     "productName": "定期おトク便かんたん解約",
     "electronLanguages": ["ja", "en-US"],
+    "compression": "maximum",
     "files": [
       "!test/**",
       "!.profile*/**",
@@ -49,12 +50,18 @@
       "!logs/**",
       "!error.log",
       "!*.png",
-      "!*.md"
+      "!*.md",
+      "!node_modules/playwright/lib/**",
+      "!node_modules/playwright/types/**",
+      "!node_modules/playwright-core/lib/vite/**",
+      "!node_modules/playwright-core/lib/cli/**",
+      "!node_modules/playwright-core/types/**",
+      "!node_modules/**/*.md"
     ],
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico",
-      "signAndEditExecutable": false
+      "signExecutable": false
     },
     "nsis": {
       "oneClick": false,
