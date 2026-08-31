@@ -108,19 +108,26 @@ function explainLaunchFailure(chromeError, chromiumError) {
   ].join('\n');
 }
 
-/** 定期おトク便の管理ページを開く。ログインが必要なら false を返す。 */
+/**
+ * 定期おトク便の管理ページを開く。ログインが必要なら false を返す。
+ * ログアウト/認証チャレンジの判定は「無い」ことを確認するチェックなので、
+ * 該当しない（＝通常ログイン済みの）場合は候補が見つからずタイムアウト分を
+ * 待つことになる。ここは短めのタイムアウトに抑え、正確な待ちが必要な
+ * readyMarkers側で時間をかける方針にしている。
+ */
 export async function gotoSubscriptions(page, sel) {
   await page.goto(sel.urls.subscriptions, { waitUntil: 'domcontentloaded' });
   await settle(page);
 
-  if (await isLoggedOut(page, sel)) return { ok: false, reason: 'login' };
-  if (await anyPresent(page, sel.auth.challengeMarkers, { timeout: 1200 })) {
+  if (await isLoggedOut(page, sel, 600)) return { ok: false, reason: 'login' };
+  if (await anyPresent(page, sel.auth.challengeMarkers, { timeout: 600 })) {
     return { ok: false, reason: 'challenge' };
   }
 
-  // 主URLで一覧が出なければ旧URLも試す
+  // 主URLで一覧が出なければ旧URLも試す。emptyはreadyが見つかった時点で
+  // 結果に影響しないため、その場合は問い合わせ自体を省略する。
   const ready = await anyPresent(page, sel.list.readyMarkers, { timeout: 6000 });
-  const empty = await anyPresent(page, sel.list.emptyMarkers, { timeout: 800 });
+  const empty = ready ? false : await anyPresent(page, sel.list.emptyMarkers, { timeout: 800 });
   if (!ready && !empty && sel.urls.subscriptionsFallback) {
     await page.goto(sel.urls.subscriptionsFallback, { waitUntil: 'domcontentloaded' });
     await settle(page);
@@ -149,9 +156,9 @@ export function isSubscriptionsUrl(url, sel) {
   return false;
 }
 
-export async function isLoggedOut(page, sel) {
+export async function isLoggedOut(page, sel, timeout = 1200) {
   if (/\/ap\/signin/.test(page.url())) return true;
-  return await anyPresent(page, sel.auth.loggedOutMarkers, { timeout: 1200 });
+  return await anyPresent(page, sel.auth.loggedOutMarkers, { timeout });
 }
 
 /**
@@ -159,9 +166,12 @@ export async function isLoggedOut(page, sel) {
  * 実際のAmazonページは広告/おすすめウィジェットが常時通信しており"networkidle"には
  * ほぼ到達しないため、ここは短く諦めて後続の要素ポーリング(anyPresent/resolveFirst)に
  * 任せる。ここを長くしても正確性は上がらず、体感速度だけが落ちる。
+ * settle()はcancel/skipの各ステップ後や一覧取得のたびに毎回呼ばれるため、
+ * ここの待ち時間はそのまま操作全体の体感速度に直結する（2500ms→800msに短縮済み。
+ * 2026-08-30には12000ms→2500msに短縮した経緯がある）。
  */
 export async function settle(page, ms = 400) {
-  await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 800 }).catch(() => {});
   await sleep(ms);
 }
 
