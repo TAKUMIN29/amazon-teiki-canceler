@@ -1,0 +1,45 @@
+name: 開発版テストビルド
+
+# main への push のたびに、Windows向けインストーラをビルドして
+# 「dev-build」タグの prerelease を上書きする（過去のテストビルドは残さない）。
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: 回帰テスト
+        run: npm test
+
+      - name: インストーラをビルド
+        run: npm run dist
+
+      - name: dev-build リリースを更新
+        uses: ncipollo/release-action@v1
+        with:
+          tag: dev-build
+          name: 開発版テストビルド（自動更新・mainの最新コミット）
+          body: |
+            `main` ブランチへの push から自動生成されたテストビルドです。
+            コミット: ${{ github.sha }}
+
+            正式リリースではありません。動作確認用にお使いください。
+          prerelease: true
+          allowUpdates: true
+          removeArtifacts: true
+          artifacts: "dist/*.exe"
+          token: ${{ secrets.GITHUB_TOKEN }}
