@@ -1,7 +1,7 @@
 {
   "name": "amazon-teiki-canceler",
   "version": "1.3.1",
-  "description": "Amazon定期おトク便を一括でキャンセル/スキップするCLI/デスクトップアプリ",
+  "description": "Amazon定期おトク便を一括でキャンセルするCLI/デスクトップアプリ",
   "license": "MIT",
   "author": "TAKUMIN29",
   "type": "module",
@@ -14,7 +14,6 @@
     "login": "node src/index.js login",
     "list": "node src/index.js list",
     "cancel": "node src/index.js cancel",
-    "skip": "node src/index.js skip",
     "manage": "node src/index.js manage",
     "inspect": "node src/index.js inspect",
     "test": "node test/run-tests.js",

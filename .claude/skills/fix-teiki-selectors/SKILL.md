@@ -1,20 +1,25 @@
 ---
 name: fix-teiki-selectors
-description: Amazon定期おトク便キャンセルCLI(teiki)が「要素が見つからない」等で失敗したとき、config/selectors.jsonのセレクタを実画面に合わせて修正する。Amazonの画面リニューアルでlist/cancel/skipが動かなくなった場合に使う。
+description: Amazon定期おトク便キャンセルCLI(teiki)が「要素が見つからない」等で失敗したとき、config/selectors.jsonのセレクタを実画面に合わせて修正する。Amazonの画面リニューアルでlist/cancelが動かなくなった場合に使う。
 ---
 
 # teiki セレクタ修復スキル
 
-このリポジトリ（Amazon定期おトク便 一括解約/スキップCLI）は、Amazonの画面のDOM構造を
-`config/selectors.json` に外出ししている。Amazon側の画面が変わると `list` / `cancel` / `skip`
-が「要素が見つかりません」で失敗するようになるが、直すのは基本的にこの1ファイルだけでよい。
+このリポジトリ（Amazon定期おトク便 一括解約CLI/デスクトップアプリ）は、Amazonの画面の
+DOM構造を `config/selectors.json` に外出ししている。Amazon側の画面が変わると `list` /
+`cancel` が「要素が見つかりません」で失敗するようになるが、直すのは基本的にこの
+1ファイルだけでよい。
+
+**「次回スキップ」機能は2026-08-31付けで廃止した**（`skip`コマンド・GUIのスキップ選択・
+`config/selectors.json`の`skip`フローとも削除済み）。Amazon側で商品単位のスキップ導線が
+無くなり、配送日単位の一括スキップに変わったため。復活させる場合は再設計が必要（詳細は
+`CLAUDE.md` を参照）。
 
 ## 参考: 2026-08-30時点で確認した実際の画面構造
 
 claude-in-chromeで実際のamazon.co.jpにログインして確認した構造。`config/selectors.json`
 の現行の値はこれに基づく。同日、実アカウントで `list` と `manage`（`--dry-run`での
-到達確認、および実際の解約1件）の成功を確認済み。スキップ操作は実アカウントでは
-未確認。
+到達確認、および実際の解約1件）の成功を確認済み。
 
 - `/auto-deliveries` のデフォルト表示は「配送日ごとのタブ」で、商品ごとの管理一覧は
   下にスクロールした「ご利用のサブスクリプション」セクション
@@ -26,9 +31,6 @@ claude-in-chromeで実際のamazon.co.jpにログインして確認した構造�
 - 編集ダイアログ内の「定期おトク便を停止する」リンクでキャンセル導線
   (`#cancel-subscription-dialog`, 理由セレクト `#sns-cancellation-dropdown`,
   確定ボタン `#confirmCancelLink`) が同じモーダル内に展開する。
-- 編集ダイアログ内の「次の配達を中止する」
-  (`[data-csa-c-content-id='skip-next-delivery']`) リンクで、別の確認モーダル
-  (確定ボタン `.skip-approve-button`) が開く。
 - ページ遷移は起きず、確定ボタンを押したときだけサーバに通知される（SPA的）。
 
 Amazonがこの構造自体を変えた場合は、下記の手順で再調査すること。
@@ -39,7 +41,7 @@ Amazonがこの構造自体を変えた場合は、下記の手順で再調査�
    `npm run inspect` は静的なHTMLしか見えないため、モーダルの中身やJSで動的に
    生成される要素までは追えないことがある。claude-in-chromeスキルでログイン済みの
    実ブラウザを操作できる状況なら、そちらの方が早く正確に構造を特定できる。
-   ただし **解約/スキップの確定ボタンは、ユーザーの明示的な許可なく絶対に
+   ただし **解約の確定ボタンは、ユーザーの明示的な許可なく絶対に
    クリックしないこと**（取り返しがつかない）。理由選択欄や確定ボタンの存在・
    IDまでは安全に確認できるので、そこで止める。
 
@@ -49,11 +51,11 @@ Amazonがこの構造自体を変えた場合は、下記の手順で再調査�
    ```
    `out/inspect-<timestamp>.png`（画面キャプチャ）、`.html`（生DOM）、
    `-items.json`（現在の抽出結果と使われた戦略）、`-buttons.json`
-   （「キャンセル/スキップ/変更/定期/解約/停止/設定」を含むボタン・リンク候補）が出力される。
+   （「キャンセル/変更/定期/解約/停止/設定」を含むボタン・リンク候補）が出力される。
    まず `-buttons.json` と `-items.json` を読み、何が変わったかを特定する。
 
 2. **失敗ログを確認する**
-   `cancel`/`skip` が失敗すると `logs/<kind>-<timestamp>.json` に各ステップの trace が残り、
+   `cancel`/`manage` が失敗すると `logs/<kind>-<timestamp>.json` に各ステップの trace が残り、
    `not-found` になったステップの `description` でどの操作が壊れたか分かる。
    同時に `out/fail-*.png` / `.html` も保存されているので、その時点の画面も参照できる。
 
@@ -71,7 +73,7 @@ Amazonがこの構造自体を変えた場合は、下記の手順で再調査�
      （dpリンクがあれば `heuristic:anchor-ancestor`、無ければ `img[alt]` 起点の
      `heuristic:img-alt-ancestor`）ので、まずそちらの抽出結果（`strategy`）で
      件数が出ているか確認する。
-   - 「最後の一歩」（解約/スキップの最終確定ボタン）には `pointOfNoReturn: true` が
+   - 「最後の一歩」（解約の最終確定ボタン）には `pointOfNoReturn: true` が
      付いている。ここだけは `--dry-run` で実クリックせずに到達確認できるので、
      セレクタを直したら必ず `--dry-run` から試す。
 
@@ -100,4 +102,4 @@ Amazonがこの構造自体を変えた場合は、下記の手順で再調査�
   その場合は `test/mock-amazon.js` に該当パターン（新しい画面構造）を再現し、
   `test/run-tests.js` にケースを追加してから直すこと。
 - 解約(cancel)は取り返しがつかない操作なので、セレクタ修正後の動作確認は
-  必ず `--dry-run` または `skip` から行い、実解約で試さない。
+  必ず `--dry-run` から行い、実解約で試さない。

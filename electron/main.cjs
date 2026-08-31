@@ -43,7 +43,7 @@ function createWindow() {
   }
 
   mainWindow.on('close', (e) => {
-    // 実行中の解約/スキップがある場合に備え、確定前は誤って閉じられないよう
+    // 実行中の解約がある場合に備え、確定前は誤って閉じられないよう
     // レンダラー側に確認を委ねる（レンダラーが確認UIを出し、続行してよければ
     // teiki:force-quit を呼ぶ。それが __forceClose を立ててから再度 close() する）。
     if (mainWindow.__busy && !mainWindow.__forceClose) {

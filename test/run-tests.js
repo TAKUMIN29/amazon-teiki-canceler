@@ -138,48 +138,8 @@ try {
   check('2件減って3件になる', s.length === 3, `残り${s.length}件`);
   check('正しい2件が消えている', !s.some((x) => ['SUB-001', 'SUB-005'].includes(x.sid)), JSON.stringify(s.map((x) => x.sid)));
 
-  /* ---------- 6. スキップ ---------- */
-  console.log('\n[6] 次回分のスキップ — 「次の配達を中止する」→ 確定');
-  await reset();
-  r = await openList();
-  res = await runSteps(page, r.items[2], sel.skip, { dryRun: false });
-  check('スキップが完了する', res.ok && res.status.startsWith('done'), `${res.status}: ${res.message}`);
-  // 実際のAmazonは「(商品名)の配達スケジュールが変更されました。」と表示する。
-  // この文言が successMarkers に無く、成功しているのに「成功メッセージは確認できず」
-  // と出てしまう不具合があったため、done-unverified で通らないようにしておく。
-  check('成功メッセージを検知できる', res.status === 'done', `${res.status}: ${res.message}`);
-  s = await state();
-  check('対象がスキップ済みになる', s.find((x) => x.sid === 'SUB-003')?.skipped === true, JSON.stringify(s.map((x) => [x.sid, x.skipped])));
-  check('件数は減っていない（解約されていない）', s.length === 5, `${s.length}件`);
-  check('他の商品はスキップされていない', s.filter((x) => x.skipped).length === 1);
-
-  /* ---------- 6.5. manage相当: 商品ごとに違う操作を混在させる ---------- */
-  console.log('\n[6.5] 混在実行 — 1件はスキップ、別の1件は解約（manageコマンド相当）');
-  await reset();
-  r = await openList();
-  const mixPlan = [
-    { item: r.items[0], action: 'skip' },
-    { item: r.items[3], action: 'cancel' },
-  ];
-  for (let i = 0; i < mixPlan.length; i++) {
-    const { item, action } = mixPlan[i];
-    if (i > 0) {
-      const again = await openList();
-      const found = again.items.find((it) => it.asin === item.asin);
-      check(`混在実行: 2件目(${action})を再同定できる`, !!found, JSON.stringify(again.items.map((x) => x.asin)));
-      item.cardSelector = found?.cardSelector;
-    }
-    const rr = await runSteps(page, item, action === 'cancel' ? sel.cancel : sel.skip, { dryRun: false });
-    check(`混在実行: ${i + 1}件目(${action})が完了`, rr.ok && rr.status.startsWith('done'), `${rr.status}: ${rr.message}`);
-  }
-  s = await state();
-  check('混在実行: スキップ対象は残っている', s.some((x) => x.sid === 'SUB-001'), JSON.stringify(s.map((x) => x.sid)));
-  check('混在実行: スキップ対象がskipped扱いになる', s.find((x) => x.sid === 'SUB-001')?.skipped === true);
-  check('混在実行: 解約対象は消えている', !s.some((x) => x.sid === 'SUB-004'), JSON.stringify(s.map((x) => x.sid)));
-  check('混在実行: 他の商品は影響を受けない', s.length === 4 && s.filter((x) => x.skipped).length === 1, JSON.stringify(s));
-
-  /* ---------- 7. 見つからないときの扱い ---------- */
-  console.log('\n[7] セレクタが合わないとき');
+  /* ---------- 6. 見つからないときの扱い ---------- */
+  console.log('\n[6] セレクタが合わないとき');
   await reset();
   r = await openList();
   const broken = { ...sel.cancel, steps: sel.cancel.steps.map((st) => ({ ...st, target: [{ css: '.存在しないクラス' }] })) };
@@ -188,8 +148,8 @@ try {
   check('直し方の案内が含まれる', /selectors\.json/.test(res.message), res.message);
   check('サーバ側は変更されていない', (await state()).length === 5);
 
-  /* ---------- 8. 番号指定のパース ---------- */
-  console.log('\n[8] --index のパース');
+  /* ---------- 7. 番号指定のパース ---------- */
+  console.log('\n[7] --index のパース');
   check('"1,3" → [1,3]', JSON.stringify(parseIndexes('1,3', 5)) === '[1,3]');
   check('"2-4" → [2,3,4]', JSON.stringify(parseIndexes('2-4', 5)) === '[2,3,4]');
   check('"5-2" のような逆順も扱える', JSON.stringify(parseIndexes('5-2', 5)) === '[2,3,4,5]');
@@ -197,8 +157,8 @@ try {
   check('範囲外はエラーになる', throws(() => parseIndexes('9', 5)));
   check('不正な書式はエラーになる', throws(() => parseIndexes('abc', 5)));
 
-  /* ---------- 9. Windows/macOS 両対応 ---------- */
-  console.log('\n[9] クロスプラットフォーム（パスの扱い）');
+  /* ---------- 8. Windows/macOS 両対応 ---------- */
+  console.log('\n[8] クロスプラットフォーム（パスの扱い）');
   // ここで使っているプロファイルパスは fileURLToPath 由来。相対パスになっていると
   // macOSでカレントディレクトリ配下に意図しないプロファイルが作られてしまう。
   check(

@@ -16,7 +16,7 @@ function showScreen(name) {
 
 /** items: getList() で取得した最新の一覧 */
 let items = [];
-/** key(item) -> 'none' | 'skip' | 'cancel' */
+/** key(item) -> 'none' | 'cancel' */
 const actions = new Map();
 
 function keyOf(item) {
@@ -169,10 +169,6 @@ function renderItemList() {
     const choices = document.createElement('div');
     choices.className = 'action-choices';
     choices.appendChild(makeChoice(key, 'none', '何もしない', current));
-    choices.appendChild(makeChoice(key, 'skip', '次回スキップ', current, {
-      disabled: SKIP_DISABLED,
-      title: SKIP_DISABLED ? 'Amazon側の画面変更により、現在スキップは一時的にご利用いただけません' : '',
-    }));
     choices.appendChild(makeChoice(key, 'cancel', '解約する', current));
     card.appendChild(choices);
 
@@ -182,25 +178,13 @@ function renderItemList() {
   updateSelectionSummary();
 }
 
-/**
- * 2026-08-31時点、Amazon側で「次回スキップ」の画面構造が変わり、既存の
- * 導線（商品編集→「次の配達を中止する」）が無くなっていることを実機で確認した。
- * 誤って選んでも実行時にエラーになるだけなので、直るまでGUI側で選べなくしておく。
- * 直った/新しい導線が分かったら false に戻し、config/selectors.json のskipを
- * 更新すること。
- */
-const SKIP_DISABLED = true;
-if (SKIP_DISABLED) document.getElementById('skip-disabled-notice').hidden = false;
-
-function makeChoice(key, value, label, current, { disabled = false, title = '' } = {}) {
+function makeChoice(key, value, label, current) {
   const el = document.createElement('label');
-  el.className = `choice-${value}${current === value ? ' active' : ''}${disabled ? ' disabled' : ''}`;
-  if (title) el.title = title;
+  el.className = `choice-${value}${current === value ? ' active' : ''}`;
   const input = document.createElement('input');
   input.type = 'radio';
   input.name = `action-${key}`;
   input.checked = current === value;
-  input.disabled = disabled;
   input.addEventListener('change', () => {
     actions.set(key, value);
     renderItemList();
@@ -214,34 +198,14 @@ function makeChoice(key, value, label, current, { disabled = false, title = '' }
 
 function updateSelectionSummary() {
   let cancelCount = 0;
-  let skipCount = 0;
   for (const v of actions.values()) {
     if (v === 'cancel') cancelCount++;
-    else if (v === 'skip') skipCount++;
   }
-  document.getElementById('selection-summary').textContent =
-    `解約 ${cancelCount}件・スキップ ${skipCount}件が選択されています`;
-  document.getElementById('btn-open-confirm').disabled = cancelCount + skipCount === 0;
+  document.getElementById('selection-summary').textContent = `解約 ${cancelCount}件が選択されています`;
+  document.getElementById('btn-open-confirm').disabled = cancelCount === 0;
 }
 
 document.getElementById('search-box').addEventListener('input', renderItemList);
-
-const selectAllSkipBtn = document.getElementById('btn-select-all-skip');
-if (SKIP_DISABLED) {
-  selectAllSkipBtn.disabled = true;
-  selectAllSkipBtn.title = 'Amazon側の画面変更により、現在スキップは一時的にご利用いただけません';
-} else {
-  selectAllSkipBtn.addEventListener('click', () => {
-    const query = document.getElementById('search-box').value.trim().toLowerCase();
-    for (const it of items) {
-      if (!query || (it.title ?? '').toLowerCase().includes(query)) {
-        actions.set(keyOf(it), 'skip');
-      }
-    }
-    renderItemList();
-  });
-}
-
 document.getElementById('btn-refresh-list').addEventListener('click', refreshList);
 
 /* ------------------------------------------------------------------ 確認モーダル */
@@ -260,7 +224,7 @@ function openConfirmModal() {
   for (const e of entries) {
     const li = document.createElement('li');
     li.className = `action-${e.action}`;
-    li.textContent = `${e.action === 'cancel' ? '解約' : 'スキップ'} — ${e.title}`;
+    li.textContent = `解約 — ${e.title}`;
     listEl.appendChild(li);
   }
 
@@ -337,7 +301,7 @@ window.teiki.onRunProgress((ev) => {
   const currentEl = document.getElementById('progress-current');
 
   if (ev.type === 'item-start') {
-    const label = ev.action === 'cancel' ? '解約' : 'スキップ';
+    const label = '解約';
     currentEl.textContent = `[${ev.index + 1}/${ev.total}] ${label} — ${ev.title}`;
     const li = document.createElement('li');
     li.textContent = `[${ev.index + 1}/${ev.total}] ${label} — ${ev.title}`;
@@ -379,7 +343,7 @@ function renderResult(results, logFile) {
   for (const r of results) {
     const mark = STATUS_MARK[r.status] ?? { cls: 'mark-fail', symbol: '✗' };
     const li = document.createElement('li');
-    const label = r.action ? `[${r.action === 'cancel' ? '解約' : 'スキップ'}] ` : '';
+    const label = r.action ? '[解約] ' : '';
     li.innerHTML = `<span class="mark ${mark.cls}">${mark.symbol}</span>${label}${escapeHtml(r.title)}`;
     if (r.message && r.status !== 'done') {
       const msg = document.createElement('span');

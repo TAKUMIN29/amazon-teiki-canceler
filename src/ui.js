@@ -53,13 +53,13 @@ export async function selectItems(items, actionLabel) {
 
 const ACTION_CHOICES = [
   { name: '何もしない', value: 'none' },
-  { name: '次回のお届けをスキップ', value: 'skip' },
   { name: kleur.red('解約する（元に戻せません）'), value: 'cancel' },
 ];
 
 /**
- * 一覧を見ながら、商品ごとに「何もしない/スキップ/解約」を選ばせる。
- * @returns {Promise<Array<{item, action:'skip'|'cancel'}>>} none を選んだ商品は含まれない
+ * 一覧を見ながら、商品ごとに「何もしない/解約」を選ばせる。
+ * （次回スキップは、Amazon側の画面変更により導線が無くなったため廃止した）
+ * @returns {Promise<Array<{item, action:'cancel'}>>} none を選んだ商品は含まれない
  */
 export async function planActions(items) {
   const plan = [];
@@ -87,9 +87,8 @@ export function renderPlanSummary(plan) {
   }
   console.log(kleur.bold(`実行予定 (${plan.length}件)`));
   console.log(kleur.gray(LINE));
-  for (const { item, action } of plan) {
-    const tag = action === 'cancel' ? kleur.red('解約  ') : kleur.yellow('スキップ');
-    console.log(`  ${tag}  ${truncate(item.title, 52)}`);
+  for (const { item } of plan) {
+    console.log(`  ${kleur.red('解約  ')}  ${truncate(item.title, 52)}`);
   }
   console.log(kleur.gray(LINE));
 }
@@ -178,7 +177,7 @@ export function renderSummary(results) {
       : r.status === 'done-unverified' ? kleur.yellow('△ 実行済(未確認)')
       : r.status === 'dry-run' ? kleur.blue('◇ 到達(未実行)')
       : kleur.red('✗ 失敗');
-    const tag = r.action ? `${kleur.gray('[' + (r.action === 'cancel' ? '解約' : 'スキップ') + ']')} ` : '';
+    const tag = r.action ? `${kleur.gray('[解約]')} ` : '';
     console.log(`${mark}  ${tag}${truncate(r.title, 46)}`);
     if (r.message && r.status !== 'done') console.log(`        ${kleur.gray(r.message)}`);
   }

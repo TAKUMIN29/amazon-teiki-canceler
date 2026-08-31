@@ -18,10 +18,14 @@
     "     をクリックするとa-popover-modalの編集ダイアログが開く。",
     "  3. 編集ダイアログ内の「定期おトク便を停止する」リンクでキャンセル導線",
     "     (#cancel-subscription-dialog)が展開し、理由select→確定ボタンと進む。",
-    "  4. 編集ダイアログ内の「次の配達を中止する」リンクでスキップの確認ダイアログが",
-    "     別途開き、そこに確定ボタンがある。",
-    "  5. カード自体にASIN/subscriptionIdを示すリンクは無いが、",
-    "     data-edit-url属性のクエリ文字列に subscriptionId と subAsin が入っている。"
+    "  4. カード自体にASIN/subscriptionIdを示すリンクは無いが、",
+    "     data-edit-url属性のクエリ文字列に subscriptionId と subAsin が入っている。",
+    "",
+    "2026-08-31に実アカウントで確認したところ、以前あった商品単位の「次回スキップ」",
+    "(編集ダイアログ内の「次の配達を中止する」)導線が無くなっていた。今のAmazonは",
+    "画面上部の「今後のお届け日数」カードから配送日単位でまとめてスキップする",
+    "仕組み(同じ配送日の他商品も巻き込みうる)に変わっており、商品単位という本ツールの",
+    "前提と食い違うため、skipフローとコマンドは廃止した。"
   ],
   "urls": {
     "base": "https://www.amazon.co.jp",
@@ -193,56 +197,6 @@
       "商品が必要なくなった",
       "必要なくなった",
       "十分な在庫がある"
-    ]
-  },
-  "skip": {
-    "label": "次回分をスキップ",
-    "steps": [
-      {
-        "description": "カードの「編集」を開く",
-        "scope": "card",
-        "action": "click",
-        "optional": false,
-        "waitAfter": 1200,
-        "target": [
-          { "css": "div[data-edit-link='true'][role='button']" },
-          { "text": "編集", "regex": true },
-          { "role": "button", "name": "編集" }
-        ]
-      },
-      {
-        "description": "「次の配達を中止する」を押す",
-        "scope": "page",
-        "action": "click",
-        "optional": false,
-        "waitAfter": 1500,
-        "target": [
-          { "css": "[data-csa-c-content-id='skip-next-delivery']" },
-          { "text": "次の配達を中止する" },
-          { "text": "次回のお届けをスキップ" },
-          { "text": "次回の配送をスキップ" }
-        ]
-      },
-      {
-        "description": "確認ダイアログで最終確定",
-        "scope": "page",
-        "action": "click",
-        "optional": false,
-        "waitAfter": 2000,
-        "target": [
-          { "css": ".skip-approve-button" },
-          { "text": "この商品をスキップします" },
-          { "role": "button", "name": "スキップを確定" },
-          { "text": "スキップを確定" }
-        ],
-        "pointOfNoReturn": true
-      }
-    ],
-    "successMarkers": [
-      { "text": "配達スケジュールが変更されました" },
-      { "text": "スキップされました" },
-      { "text": "スキップしました" },
-      { "text": "次回のお届けをスキップ済み" }
     ]
   }
 }

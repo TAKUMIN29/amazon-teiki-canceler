@@ -62,26 +62,22 @@
       <input id="search-box" type="search" placeholder="商品名で絞り込み…" />
       <label class="dryrun-toggle">
         <input id="dryrun-checkbox" type="checkbox" checked />
-        テスト実行（実際には解約・スキップされません）
+        テスト実行（実際には解約されません）
       </label>
       <label class="dryrun-toggle" title="ブラウザ画面を出さずに裏で操作します。速くなりますが、Amazonに自動操作と判定されやすくなる可能性があります。">
         <input id="headless-checkbox" type="checkbox" />
         ブラウザを表示しない（速い）
       </label>
-      <button id="btn-select-all-skip" class="btn btn-secondary">表示中をすべてスキップにする</button>
       <button id="btn-refresh-list" class="btn btn-ghost">一覧を更新</button>
     </div>
 
-    <p id="skip-disabled-notice" class="status-text warning-inline" hidden>
-      Amazon側の画面変更により、「次回スキップ」は現在ご利用いただけません（解約は利用できます）。
-    </p>
     <p id="list-empty" class="status-text" hidden>定期おトク便の登録はありませんでした。</p>
     <p id="list-strategy" class="status-text muted"></p>
 
     <div id="item-list" class="item-list"></div>
 
     <div class="footer-bar">
-      <span id="selection-summary">解約 0件・スキップ 0件が選択されています</span>
+      <span id="selection-summary">解約 0件が選択されています</span>
       <button id="btn-open-confirm" class="btn btn-primary btn-large" disabled>実行する</button>
     </div>
   </section>

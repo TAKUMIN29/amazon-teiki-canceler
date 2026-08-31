@@ -131,12 +131,9 @@ html, body {
 .action-choices input { display: none; }
 .action-choices input:checked + span { font-weight: 700; }
 .action-choices label.choice-none input:checked ~ * { color: var(--text); }
-.action-choices label.choice-skip { color: var(--warn); }
 .action-choices label.choice-cancel { color: var(--danger); }
 .action-choices label.active.choice-none { background: #fff; }
-.action-choices label.active.choice-skip { background: #fdf2df; }
 .action-choices label.active.choice-cancel { background: var(--danger-bg); }
-.action-choices label.disabled { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; }
 
 .footer-bar {
   position: fixed;
@@ -175,16 +172,6 @@ html, body {
   font-size: 14px;
 }
 .confirm-list li.action-cancel { color: var(--danger); font-weight: 600; }
-.confirm-list li.action-skip { color: var(--warn); }
-
-.warning-inline {
-  background: #fdf2df;
-  color: var(--warn);
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin-bottom: 12px;
-}
 
 .warning-text {
   background: var(--danger-bg);

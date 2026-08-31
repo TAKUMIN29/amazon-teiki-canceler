@@ -100,7 +100,7 @@ export async function getList({ headless = false } = {}) {
 
 /**
  * 選ばれた実行計画を1件ずつ実行する。
- * @param {Array<{asin?:string, subscriptionId?:string, title:string, action:'skip'|'cancel'}>} requestedEntries
+ * @param {Array<{asin?:string, subscriptionId?:string, title:string, action:'cancel'}>} requestedEntries
  * @param {{dryRun:boolean}} opts
  * @param {(event:object)=>void} onProgress
  */
@@ -120,7 +120,7 @@ export async function runPlan(requestedEntries, { dryRun, headless = false } = {
   const entries = requestedEntries.map((req) => {
     const wantKey = req.asin ?? req.subscriptionId ?? req.title;
     const target = freshItems.find((it) => keyOf(it) === wantKey) ?? null;
-    const flow = req.action === 'cancel' ? sel.cancel : sel.skip;
+    const flow = sel.cancel;
     return { target, flow, action: req.action, requested: req };
   });
 

@@ -20,7 +20,7 @@ import {
 const program = new Command();
 program
   .name('teiki')
-  .description('Amazon定期おトク便を一括で解約/スキップするツール')
+  .description('Amazon定期おトク便を一括で解約するツール')
   .version('1.0.0');
 
 const browserOpts = (cmd) =>
@@ -80,21 +80,20 @@ browserOpts(program.command('list'))
     });
   });
 
-/* --------------------------------------------------------- cancel / skip */
+/* --------------------------------------------------------------- cancel */
+// 「次回スキップ」コマンドは、Amazon側の画面変更（配送日単位の一括スキップに
+// 変わり、商品単位でスキップする導線が無くなった）により2026-08-31付けで廃止した。
 
-for (const kind of ['cancel', 'skip']) {
-  const isCancel = kind === 'cancel';
-  const cmd = browserOpts(program.command(kind))
-    .description(isCancel ? '定期購入を解約する（元に戻せません）' : '次回のお届けをスキップする')
-    .option('--all', 'すべての商品を対象にする', false)
-    .option('--index <spec>', '番号で指定する（例: 1,3,5-7）')
-    .option('--filter <text>', '商品名に含まれる文字列で絞り込む')
-    .option('--dry-run', '最後の確定ボタンの手前まで動作を確認する（実行はしない）', false)
-    .option('-y, --yes', '確認プロンプトを省略する', false);
-
-  cmd.action(async (opts) => {
+browserOpts(program.command('cancel'))
+  .description('定期購入を解約する（元に戻せません）')
+  .option('--all', 'すべての商品を対象にする', false)
+  .option('--index <spec>', '番号で指定する（例: 1,3,5-7）')
+  .option('--filter <text>', '商品名に含まれる文字列で絞り込む')
+  .option('--dry-run', '最後の確定ボタンの手前まで動作を確認する（実行はしない）', false)
+  .option('-y, --yes', '確認プロンプトを省略する', false)
+  .action(async (opts) => {
     await withPage(opts, async ({ page, sel }) => {
-      const flow = sel[kind];
+      const flow = sel.cancel;
       const { items } = await listSubscriptions(page, sel);
       if (items.length === 0) {
         console.log(kleur.yellow('\n対象の定期おトク便がありません。\n'));
@@ -110,8 +109,8 @@ for (const kind of ['cancel', 'skip']) {
 
       if (!opts.yes) {
         const ok = await confirmRun(targets, flow.label, {
-          destructive: isCancel && !opts.dryRun,
-          requireTyping: isCancel && !opts.dryRun && targets.length === items.length && items.length > 1,
+          destructive: !opts.dryRun,
+          requireTyping: !opts.dryRun && targets.length === items.length && items.length > 1,
         });
         if (!ok) return;
       }
@@ -119,15 +118,14 @@ for (const kind of ['cancel', 'skip']) {
       const entries = targets.map((target) => ({ target, flow }));
       const results = await executeAll(page, sel, entries, opts);
       renderSummary(results);
-      writeLog(kind, opts, results);
+      writeLog('cancel', opts, results);
     });
   });
-}
 
 /* --------------------------------------------------------------- manage */
 
 browserOpts(program.command('manage'))
-  .description('一覧を見ながら、商品ごとにスキップ/解約を選んで一括実行する')
+  .description('一覧を見ながら、商品ごとに解約するかどうかを選んで一括実行する')
   .option('--dry-run', '最後の確定ボタンの手前まで動作を確認する（実行はしない）', false)
   .option('-y, --yes', '確認プロンプトを省略する', false)
   .action(async (opts) => {
@@ -153,7 +151,7 @@ browserOpts(program.command('manage'))
 
       const entries = plan.map(({ item, action }) => ({
         target: item,
-        flow: action === 'cancel' ? sel.cancel : sel.skip,
+        flow: sel.cancel,
         action,
       }));
       const results = await executeAll(page, sel, entries, opts);
@@ -248,17 +246,16 @@ async function pickTargets(items, opts, actionLabel) {
 }
 
 /**
- * entries を1件ずつ実行する。entry ごとに使う flow（cancel/skip）を変えられるので、
- * cancel/skip コマンド（全件同じ操作）と manage コマンド（商品ごとに違う操作）の
- * 両方から使える。1件終わるたびに一覧を取り直し、キーで対象を探し直す
- * （解約後はカードが消えて番号がずれるため、番号は使い回せない）。
+ * entries を1件ずつ実行する。cancel コマンド（全件同じ操作）と manage コマンド
+ * （商品ごとに選ぶ）の両方から使える。1件終わるたびに一覧を取り直し、キーで
+ * 対象を探し直す（解約後はカードが消えて番号がずれるため、番号は使い回せない）。
  */
 async function executeAll(page, sel, entries, opts) {
   const results = [];
 
   for (let i = 0; i < entries.length; i++) {
     let { target, flow, action } = entries[i];
-    const label = action ? `(${action === 'cancel' ? '解約' : 'スキップ'}) ` : '';
+    const label = action ? '(解約) ' : '';
     console.log(kleur.bold(`\n[${i + 1}/${entries.length}] ${label}${target.title}`));
 
     if (i > 0) {
