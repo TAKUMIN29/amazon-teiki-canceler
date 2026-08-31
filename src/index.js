@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Command } from 'commander';
-import { launch, loadSelectors, gotoSubscriptions, isLoggedOut, dump, sleep, anyPresent, ROOT } from './browser.js';
+import { launch, loadSelectors, gotoSubscriptions, isLoggedOut, dump, sleep, anyPresent, ROOT, LOGS_DIR } from './browser.js';
 import { listSubscriptions, refresh } from './scrape.js';
 import { runSteps } from './actions.js';
 import {
@@ -292,10 +292,9 @@ async function executeAll(page, sel, entries, opts) {
 }
 
 function writeLog(kind, opts, results) {
-  const dir = path.join(ROOT, 'logs');
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const file = path.join(dir, `${kind}-${stamp}.json`);
+  const file = path.join(LOGS_DIR, `${kind}-${stamp}.json`);
   const body = { kind, dryRun: !!opts.dryRun, at: new Date().toISOString(), results };
   fs.writeFileSync(file, JSON.stringify(body, null, 2), 'utf8');
   console.log(kleur.gray(`  ログ: ${path.relative(ROOT, file)}\n`));

@@ -8,3 +8,4 @@ npm-debug.log*
 error.log
 .DS_Store
 .agents/
+dist/

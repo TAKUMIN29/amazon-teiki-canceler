@@ -9,7 +9,12 @@ export const ROOT = path.resolve(__dirname, '..');
 export const PROFILE_DIR = process.env.TEIKI_PROFILE_DIR
   ? path.resolve(process.env.TEIKI_PROFILE_DIR)
   : path.join(ROOT, '.profile');
-export const OUT_DIR = path.join(ROOT, 'out');
+export const OUT_DIR = process.env.TEIKI_OUT_DIR
+  ? path.resolve(process.env.TEIKI_OUT_DIR)
+  : path.join(ROOT, 'out');
+export const LOGS_DIR = process.env.TEIKI_LOGS_DIR
+  ? path.resolve(process.env.TEIKI_LOGS_DIR)
+  : path.join(ROOT, 'logs');
 
 export function loadSelectors() {
   const file = path.join(ROOT, 'config', 'selectors.json');
@@ -52,7 +57,7 @@ export async function launch({ headless = false, slowMo = 0 } = {}) {
       // Chrome が見つからなければ Playwright 同梱の Chromium にフォールバック
       ctx = await chromium.launchPersistentContext(PROFILE_DIR, common);
     } catch (chromiumError) {
-      throw new Error(explainLaunchFailure(chromeError, chromiumError));
+      throw new Error(explainLaunchFailure(chromeError, chromiumError), { cause: { chromeError, chromiumError } });
     }
   }
 
@@ -64,15 +69,26 @@ export async function launch({ headless = false, slowMo = 0 } = {}) {
 }
 
 /**
+ * ブラウザ起動失敗の原因を分類する（プロファイル使用中 / Chrome未インストール、の2択）。
+ * GUI版がエラー画面を出し分けるためにも使うので export している。
+ */
+export function classifyLaunchFailure(chromeError, chromiumError) {
+  const both = `${chromeError?.message ?? ''}\n${chromiumError?.message ?? ''}`;
+  if (/ProcessSingleton|profile.*in use|SingletonLock/i.test(both)) {
+    return { kind: 'profile-in-use' };
+  }
+  return { kind: 'chrome-missing' };
+}
+
+/**
  * ブラウザが起動できなかったときに、原因別の対処法を添えたメッセージを組み立てる。
  * ブラウザが無い/プロファイルが使用中、のどちらかであることがほとんど。
  */
 function explainLaunchFailure(chromeError, chromiumError) {
   const detail = String(chromiumError?.message ?? chromiumError).split('\n')[0];
-  const both = `${chromeError?.message ?? ''}\n${chromiumError?.message ?? ''}`;
+  const { kind } = classifyLaunchFailure(chromeError, chromiumError);
 
-  // 同じプロファイルを使う別のブラウザが起動したままだと掴めない
-  if (/ProcessSingleton|profile.*in use|SingletonLock/i.test(both)) {
+  if (kind === 'profile-in-use') {
     return [
       'ブラウザを起動できませんでした（プロファイルが使用中の可能性があります）。',
       `  ${detail}`,
