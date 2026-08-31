@@ -1,0 +1,40 @@
+name: 正式リリース
+
+# v1.2.0 のようなタグをpushすると、Windows向けインストーラをビルドして
+# そのタグ名でGitHub Releaseを作成する（開発版テストビルドとは別扱い）。
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: 回帰テスト
+        run: npm test
+
+      - name: インストーラをビルド
+        run: npm run dist
+
+      - name: リリースを作成
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generateReleaseNotes: true
+          prerelease: false
+          artifacts: "dist/*.exe"
+          token: ${{ secrets.GITHUB_TOKEN }}
