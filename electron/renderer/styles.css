@@ -136,6 +136,7 @@ html, body {
 .action-choices label.active.choice-none { background: #fff; }
 .action-choices label.active.choice-skip { background: #fdf2df; }
 .action-choices label.active.choice-cancel { background: var(--danger-bg); }
+.action-choices label.disabled { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; }
 
 .footer-bar {
   position: fixed;
@@ -175,6 +176,15 @@ html, body {
 }
 .confirm-list li.action-cancel { color: var(--danger); font-weight: 600; }
 .confirm-list li.action-skip { color: var(--warn); }
+
+.warning-inline {
+  background: #fdf2df;
+  color: var(--warn);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
 
 .warning-text {
   background: var(--danger-bg);
