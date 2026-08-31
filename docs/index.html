@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>定期おトク便かんたん解約</title>
+<meta name="description" content="Amazon定期おトク便を商品ごとに選んで解約できるデスクトップアプリの紹介ページ。定期券をモチーフにした案内。">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ink: #16302B;
+    --ink-soft: #24443C;
+    --paper: #EEE1C3;
+    --paper-raised: #F7EFDC;
+    --paper-line: rgba(22,48,43,0.22);
+    --accent: #E07A1F;
+    --accent-deep: #B85F12;
+    --line: #2F6E62;
+    --line-soft: #3F8577;
+    --danger: #B23A2E;
+    --text-on-paper: #1D2E2A;
+    --text-muted: #5B6F68;
+    --shadow: 0 18px 40px -22px rgba(22,48,43,0.55);
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #0B1917;
+      --ink-soft: #16302B;
+      --paper-raised: #263832;
+      --paper-line: rgba(238,225,195,0.18);
+      --accent: #F2953C;
+      --accent-deep: #FFB066;
+      --line: #4FA491;
+      --line-soft: #6BBBA8;
+      --danger: #E0685A;
+      --text-on-paper: #EFE7D6;
+      --text-muted: #A9BAB2;
+      --shadow: 0 18px 44px -20px rgba(0,0,0,0.65);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #0B1917;
+    --ink-soft: #16302B;
+    --paper-raised: #263832;
+    --paper-line: rgba(238,225,195,0.18);
+    --accent: #F2953C;
+    --accent-deep: #FFB066;
+    --line: #4FA491;
+    --line-soft: #6BBBA8;
+    --danger: #E0685A;
+    --text-on-paper: #EFE7D6;
+    --text-muted: #A9BAB2;
+    --shadow: 0 18px 44px -20px rgba(0,0,0,0.65);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  .mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  a { color: inherit; }
+
+  /* ---------------------------------------------------------------- 導線 */
+  .rail {
+    position: relative;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  header.top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--ink) 88%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(238,225,195,0.14);
+  }
+  header.top .rail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  .brandmark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--paper);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .brandmark .ring {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    border-right-color: transparent;
+    transform: rotate(-45deg);
+    flex-shrink: 0;
+  }
+  header.top nav a {
+    color: var(--paper);
+    text-decoration: none;
+    font-size: 13px;
+    opacity: 0.78;
+    border: 1px solid rgba(238,225,195,0.3);
+    padding: 7px 14px;
+    border-radius: 999px;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  header.top nav a:hover { opacity: 1; border-color: var(--accent); }
+
+  /* ---------------------------------------------------------------- hero */
+  .hero {
+    padding: 76px 0 96px;
+  }
+  .hero .rail { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+  @media (max-width: 860px) { .hero .rail { grid-template-columns: 1fr; } }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: var(--line-soft);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 16px; height: 1px;
+    background: var(--line-soft);
+  }
+
+  .hero h1 {
+    color: var(--paper);
+    font-weight: 900;
+    font-size: clamp(34px, 5vw, 54px);
+    line-height: 1.28;
+    letter-spacing: 0.01em;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p.lead {
+    margin-top: 22px;
+    color: rgba(238,225,195,0.8);
+    font-size: 16px;
+    max-width: 46ch;
+  }
+
+  .cta-row { display: flex; gap: 12px; margin-top: 34px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent); color: #1B1006; box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--accent) 70%, transparent); }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-ghost { color: var(--paper); border-color: rgba(238,225,195,0.35); }
+  .btn-ghost:hover { border-color: var(--paper); }
+  .req-note { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: rgba(238,225,195,0.55); margin-top: 16px; letter-spacing: 0.02em; }
+
+  /* -------------------------------------------------------- ticket visual */
+  .ticket-wrap { perspective: 1000px; }
+  .ticket {
+    background: var(--paper-raised);
+    color: var(--text-on-paper);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transform: translateY(26px) rotate(2.2deg);
+    opacity: 0;
+    transition: transform 0.9s cubic-bezier(.16,1,.3,1), opacity 0.7s ease;
+  }
+  .ticket.in { transform: translateY(0) rotate(-1.4deg); opacity: 1; }
+
+  .ticket-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 22px 24px 18px;
+    border-bottom: 1px dashed var(--paper-line);
+  }
+  .ticket-head .kind {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+  }
+  .ticket-head .name { font-weight: 900; font-size: 19px; margin-top: 6px; }
+  .ticket-head .no { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); text-align: right; }
+
+  .ticket-body { padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+  .field .k { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.1em; color: var(--text-muted); }
+  .field .v { font-weight: 700; font-size: 15px; margin-top: 4px; }
+  .field.wide { grid-column: 1 / -1; }
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600;
+    color: var(--line); background: color-mix(in srgb, var(--line) 14%, transparent);
+    padding: 4px 9px; border-radius: 999px; margin-top: 4px;
+  }
+  .status-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+
+  .ticket-stub {
+    border-top: 1px dashed var(--paper-line);
+    padding: 16px 24px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .barcode {
+    height: 30px; flex: 1;
+    background-image: repeating-linear-gradient(to right,
+      var(--text-on-paper) 0 2px, transparent 2px 5px,
+      var(--text-on-paper) 5px 6px, transparent 6px 9px,
+      var(--text-on-paper) 9px 12px, transparent 12px 14px,
+      var(--text-on-paper) 14px 15px, transparent 15px 19px,
+      var(--text-on-paper) 19px 21px, transparent 21px 24px);
+    opacity: 0.75;
+  }
+  .stub-note { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+
+  /* ------------------------------------------------------------- section */
+  section { padding: 88px 0; }
+  .section-head { max-width: 620px; margin-bottom: 52px; }
+  .section-head .eyebrow { color: var(--accent); }
+  .section-head .eyebrow::before { background: var(--accent); }
+  .section-head h2 { color: var(--paper); font-size: clamp(24px, 3vw, 32px); font-weight: 900; }
+  .section-head p { margin-top: 14px; color: rgba(238,225,195,0.72); font-size: 15px; }
+
+  /* ------------------------------------------------------------ route map */
+  .route { position: relative; }
+  .route svg { display: block; width: 100%; height: 90px; overflow: visible; }
+  .route path.track {
+    fill: none; stroke: rgba(238,225,195,0.22); stroke-width: 2; stroke-linecap: round;
+  }
+  .route path.progress {
+    fill: none; stroke: var(--line-soft); stroke-width: 2; stroke-linecap: round;
+    stroke-dasharray: 1000; stroke-dashoffset: 1000;
+    transition: stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1);
+  }
+  .route.in path.progress { stroke-dashoffset: 0; }
+
+  .stops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: -18px; }
+  @media (max-width: 720px) { .stops { grid-template-columns: 1fr; } }
+  .stop {
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .stop.in { opacity: 1; transform: translateY(0); }
+  .stop .dot {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--ink); border: 3px solid var(--line-soft);
+    margin-bottom: 16px;
+  }
+  .stop .idx { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--line-soft); letter-spacing: 0.1em; }
+  .stop h3 { color: var(--paper); font-size: 18px; font-weight: 700; margin-top: 6px; }
+  .stop p { color: rgba(238,225,195,0.68); font-size: 14px; margin-top: 8px; max-width: 32ch; }
+
+  /* -------------------------------------------------------------- stubs */
+  .stub-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  @media (max-width: 860px) { .stub-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .stub-grid { grid-template-columns: 1fr; } }
+
+  .feat {
+    background: var(--paper-raised);
+    color: var(--text-on-paper);
+    border-radius: 10px;
+    padding: 20px 20px 18px;
+    position: relative;
+    box-shadow: 0 12px 26px -18px rgba(0,0,0,0.5);
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+  .feat.in { opacity: 1; transform: translateY(0); }
+  .feat .idx { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--accent-deep); font-weight: 600; }
+  .feat h3 { font-size: 16px; font-weight: 700; margin-top: 8px; }
+  .feat p { font-size: 13.5px; color: var(--text-muted); margin-top: 8px; }
+
+  /* -------------------------------------------------------------- fine print */
+  .fineprint {
+    background: var(--paper-raised);
+    color: var(--text-on-paper);
+    border-radius: 14px;
+    padding: 30px 32px;
+    position: relative;
+  }
+  .fineprint::before {
+    content: "";
+    position: absolute; left: 0; right: 0; top: -1px;
+    height: 1px;
+    background-image: repeating-linear-gradient(to right, var(--paper-line) 0 8px, transparent 8px 14px);
+  }
+  .fineprint h2 { font-size: 18px; font-weight: 900; display: flex; align-items: center; gap: 10px; }
+  .fineprint h2 .mark { color: var(--danger); }
+  .fineprint ul { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  .fineprint li { display: flex; gap: 10px; font-size: 13.5px; color: var(--text-on-paper); }
+  .fineprint li::before { content: "―"; color: var(--text-muted); flex-shrink: 0; }
+  .fineprint li strong { font-weight: 700; }
+
+  /* -------------------------------------------------------------- gate cta */
+  .gate {
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+    border-top: 1px solid rgba(238,225,195,0.12);
+    padding: 90px 0 46px;
+  }
+  .gate-panel { text-align: center; max-width: 560px; margin: 0 auto; }
+  .gate-panel h2 { color: var(--paper); font-size: clamp(24px, 3.4vw, 34px); font-weight: 900; }
+  .gate-panel p { color: rgba(238,225,195,0.7); margin-top: 14px; font-size: 15px; }
+  .gate .cta-row { justify-content: center; margin-top: 30px; }
+
+  .gate-arch { display: flex; justify-content: center; margin-bottom: 26px; }
+  .gate-arch svg { opacity: 0.85; }
+
+  footer.legal {
+    margin-top: 70px;
+    padding-top: 26px;
+    border-top: 1px solid rgba(238,225,195,0.12);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    color: rgba(238,225,195,0.45);
+  }
+  footer.legal a { text-decoration: none; color: rgba(238,225,195,0.6); }
+  footer.legal a:hover { color: var(--paper); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ticket, .stop, .feat, .route path.progress { transition: none !important; }
+    .ticket { opacity: 1; transform: none; }
+    .stop, .feat { opacity: 1; transform: none; }
+    .route path.progress { stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="rail">
+    <a class="brandmark" href="#top"><span class="ring"></span>定期おトク便かんたん解約</a>
+    <nav>
+      <a href="https://github.com/TAKUMIN29/amazon-teiki-canceler" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="rail">
+      <div>
+        <div class="eyebrow">AMAZON 定期おトク便 管理ツール</div>
+        <h1>その定期おトク便、<br><em>選び直そう。</em></h1>
+        <p class="lead">
+          一覧を見ながら、商品ごとに「このまま」か「解約する」かを選ぶだけ。
+          ターミナルの知識もNode.jsのインストールも要りません。
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest" target="_blank" rel="noopener">
+            インストーラをダウンロード
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/TAKUMIN29/amazon-teiki-canceler" target="_blank" rel="noopener">
+            ソースを見る
+          </a>
+        </div>
+        <div class="req-note">REQUIRES — Windows 10/11 ・ Google Chrome</div>
+      </div>
+
+      <div class="ticket-wrap">
+        <div class="ticket" id="hero-ticket">
+          <div class="ticket-head">
+            <div>
+              <div class="kind">定期おトク便 ・ ADMISSION</div>
+              <div class="name">い・ろ・は・す 2L PET ×8本</div>
+            </div>
+            <div class="no">No. B08TV9<br>VDR7</div>
+          </div>
+          <div class="ticket-body">
+            <div class="field">
+              <div class="k">次回のお届け予定</div>
+              <div class="v">11月7日(土)</div>
+            </div>
+            <div class="field">
+              <div class="k">配送頻度</div>
+              <div class="v">1ヵ月ごと</div>
+            </div>
+            <div class="field wide">
+              <div class="k">このご利用について</div>
+              <div class="status-chip">選択待ち ・ 何もしない / 解約する</div>
+            </div>
+          </div>
+          <div class="ticket-stub">
+            <div class="barcode" aria-hidden="true"></div>
+            <div class="stub-note">TEIKI-CANCELER</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="rail">
+      <div class="section-head">
+        <div class="eyebrow">ROUTE / 使い方</div>
+        <h2>3駅で完結する。</h2>
+        <p>むずかしい設定はありません。改札を通るくらいの手数で、今の状態を確認して終わります。</p>
+      </div>
+
+      <div class="route" id="route">
+        <svg viewBox="0 0 1000 90" preserveAspectRatio="none">
+          <path class="track" d="M 40 45 H 960" />
+          <path class="progress" d="M 40 45 H 960" />
+        </svg>
+        <div class="stops">
+          <div class="stop">
+            <div class="dot"></div>
+            <div class="idx">STOP 01</div>
+            <h3>ログインする</h3>
+            <p>ボタンを押すと開くブラウザで、いつも通りAmazonにログイン。2段階認証もそのままで大丈夫です。</p>
+          </div>
+          <div class="stop">
+            <div class="dot"></div>
+            <div class="idx">STOP 02</div>
+            <h3>見る・選ぶ</h3>
+            <p>定期おトク便の一覧が並びます。商品ごとに「何もしない」か「解約する」かを選んでいきます。</p>
+          </div>
+          <div class="stop">
+            <div class="dot"></div>
+            <div class="idx">STOP 03</div>
+            <h3>実行する</h3>
+            <p>「テスト実行」を付けたまま導線を確認し、問題なければ外して本番実行。解約2件以上は文字入力での再確認も。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="rail">
+      <div class="section-head">
+        <div class="eyebrow">FARE TABLE / できること</div>
+        <h2>5枚の切符に、できることをまとめました。</h2>
+      </div>
+
+      <div class="stub-grid">
+        <div class="feat">
+          <div class="idx">01 ／ LIST</div>
+          <h3>一覧表示</h3>
+          <p>次回お届け日・数量・価格をまとめて表示。今どれだけ定期便を抱えているか、一目で分かります。</p>
+        </div>
+        <div class="feat">
+          <div class="idx">02 ／ CANCEL</div>
+          <h3>個別に解約</h3>
+          <p>商品ごとにチェックして、まとめて実行。全部を同じ操作にする必要はありません。</p>
+        </div>
+        <div class="feat">
+          <div class="idx">03 ／ DRY-RUN</div>
+          <h3>テスト実行</h3>
+          <p>確定ボタンの手前で必ず立ち止まる、既定でONのモード。導線の確認だけなら何も実行されません。</p>
+        </div>
+        <div class="feat">
+          <div class="idx">04 ／ GUARD</div>
+          <h3>誤操作防止</h3>
+          <p>ブラウザが別のページに移動していたら、実行前に自動で検知して中止します。無関係な商品を巻き込みません。</p>
+        </div>
+        <div class="feat">
+          <div class="idx">05 ／ SPEED</div>
+          <h3>高速化</h3>
+          <p>一覧の読み込みを実測で約27倍高速化。待たされてイライラする時間を減らしました。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="notice">
+    <div class="rail">
+      <div class="fineprint">
+        <h2><span class="mark">※</span>ご利用にあたって</h2>
+        <ul>
+          <li><strong>解約は元に戻せません。</strong>再度利用するには登録し直しが必要です。まずテスト実行で導線を確認してから実行してください。</li>
+          <li>ログイン情報はお使いのパソコンにのみ保存され、外部には送信されません。</li>
+          <li>Amazonの利用規約の範囲内で、ご自身のアカウントの定期おトク便を管理する目的でのみご利用ください。</li>
+          <li>本ツールは非公式な自動操作です。利用規約違反とみなされアカウントが停止・制限される可能性があります。ご利用により生じた損害について作成者は責任を負いません。自己責任でご利用ください。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="gate">
+    <div class="rail">
+      <div class="gate-panel">
+        <div class="gate-arch">
+          <svg width="120" height="52" viewBox="0 0 120 52" fill="none">
+            <path d="M4 50V20C4 9 13 2 26 2H94C107 2 116 9 116 20V50" stroke="var(--line-soft)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M60 2V50" stroke="var(--accent)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>改札を通ろう。</h2>
+        <p>インストーラをダウンロードして起動するだけ。あとはログインして、選ぶだけです。</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest" target="_blank" rel="noopener">
+            最新版をダウンロード
+          </a>
+        </div>
+      </div>
+
+      <footer class="legal">
+        <span>MIT License ・ TAKUMIN29</span>
+        <a href="https://github.com/TAKUMIN29/amazon-teiki-canceler" target="_blank" rel="noopener">github.com/TAKUMIN29/amazon-teiki-canceler</a>
+      </footer>
+    </div>
+  </section>
+</main>
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    requestAnimationFrame(() => {
+      const t = document.getElementById('hero-ticket');
+      if (t) t.classList.add('in');
+    });
+
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.3 });
+
+    document.querySelectorAll('.stop, .feat, .route').forEach((el) => io.observe(el));
+  });
+</script>
+</body>
+</html>
