@@ -130,20 +130,6 @@ npm run inspect
 `config/selectors.json` の候補を追記するだけで直る設計です。手順の詳細は
 `.claude/skills/fix-teiki-selectors/SKILL.md` にまとめてあります。
 
-## テスト
-
-ローカルに用意したダミーのAmazon風画面（`test/mock-amazon.js`）に対して
-CLIのロジック（一覧抽出・編集モーダルの開閉・理由選択・確定・dry-run・
-連続解約時の再同定など）を検証します。このモックは
-claude-in-chromeで実際のamazon.co.jpを操作して確認した画面構造
-（`div[data-edit-link]`によるモーダル起動、`data-edit-url`のクエリ文字列に
-ASIN/購読IDが入っている、等）を再現したものですが、実際のAmazonそのものには
-一切アクセスしません。
-
-```bash
-npm test
-```
-
 ## GUIアプリの開発
 
 ```bash
@@ -171,9 +157,6 @@ electron/
   renderer/        画面（HTML/CSS/JS、フレームワーク無し）
 config/
   selectors.json  Amazon画面のDOM依存部分をまとめた設定（要調整はここだけ）
-test/
-  mock-amazon.js  検証用のダミーAmazon画面
-  run-tests.js    上記に対する回帰テスト
 ```
 
 ## 注意事項

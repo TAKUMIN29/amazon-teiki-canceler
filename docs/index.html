@@ -308,6 +308,20 @@
   .feat h3 { font-size: 16px; font-weight: 700; margin-top: 8px; }
   .feat p { font-size: 13.5px; color: var(--text-muted); margin-top: 8px; }
 
+  /* ------------------------------------------------------------------ demo */
+  .demo-frame {
+    max-width: 780px;
+    margin: 0 auto;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    background: var(--ink-soft);
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .demo-frame.in { opacity: 1; transform: translateY(0); }
+  .demo-frame video { display: block; width: 100%; }
+
   /* -------------------------------------------------------------- fine print */
   .fineprint {
     background: var(--paper-raised);
@@ -356,9 +370,9 @@
   footer.legal a:hover { color: var(--paper); }
 
   @media (prefers-reduced-motion: reduce) {
-    .ticket, .stop, .feat, .route path.progress { transition: none !important; }
+    .ticket, .stop, .feat, .demo-frame, .route path.progress { transition: none !important; }
     .ticket { opacity: 1; transform: none; }
-    .stop, .feat { opacity: 1; transform: none; }
+    .stop, .feat, .demo-frame { opacity: 1; transform: none; }
     .route path.progress { stroke-dashoffset: 0; }
   }
 </style>
@@ -463,6 +477,22 @@
     </div>
   </section>
 
+  <section id="demo">
+    <div class="rail">
+      <div class="section-head">
+        <div class="eyebrow">ON BOARD / 実際の画面</div>
+        <h2>動いているところを見る。</h2>
+        <p>一覧の表示から、商品ごとに解約を選んで実行するまでの流れです。</p>
+      </div>
+
+      <div class="demo-frame" id="demo-frame">
+        <video controls preload="metadata" poster="assets/demo-poster.jpg" playsinline>
+          <source src="assets/demo.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </section>
+
   <section id="features">
     <div class="rail">
       <div class="section-head">
@@ -541,7 +571,7 @@
       }
     }, { threshold: 0.3 });
 
-    document.querySelectorAll('.stop, .feat, .route').forEach((el) => io.observe(el));
+    document.querySelectorAll('.stop, .feat, .route, .demo-frame').forEach((el) => io.observe(el));
   });
 </script>
 </body>

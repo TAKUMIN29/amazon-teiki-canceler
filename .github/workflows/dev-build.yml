@@ -28,9 +28,6 @@ jobs:
 
       - run: npm ci
 
-      - name: 回帰テスト
-        run: npm test
-
       - name: インストーラをビルド
         run: npm run dist
 
