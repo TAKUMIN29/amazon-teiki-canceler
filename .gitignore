@@ -9,3 +9,6 @@ error.log
 .DS_Store
 .agents/
 dist/
+.claude/
+test/
+CLAUDE.md
