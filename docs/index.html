@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>定期おトク便かんたん解約</title>
-<meta name="description" content="Amazon定期おトク便を商品ごとに選んで解約できるデスクトップアプリの紹介ページ。定期券をモチーフにした案内。">
+<meta name="description" content="Amazonの定期おトク便を、商品を選んでまとめて解約できるWindowsアプリ。">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -283,7 +283,7 @@
     background: var(--ink); border: 3px solid var(--line-soft);
     margin-bottom: 16px;
   }
-  .stop .idx { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--line-soft); letter-spacing: 0.1em; }
+  .stop .idx { font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 600; color: var(--line-soft); }
   .stop h3 { color: var(--paper); font-size: 18px; font-weight: 700; margin-top: 6px; }
   .stop p { color: rgba(238,225,195,0.68); font-size: 14px; margin-top: 8px; max-width: 32ch; }
 
@@ -392,27 +392,26 @@
   <section class="hero">
     <div class="rail">
       <div>
-        <div class="eyebrow">AMAZON 定期おトク便 管理ツール</div>
-        <h1>その定期おトク便、<br><em>選び直そう。</em></h1>
+        <h1>定期おトク便を、<br><em>まとめて解約。</em></h1>
         <p class="lead">
-          一覧を見ながら、商品ごとに「このまま」か「解約する」かを選ぶだけ。
+          一覧から解約したい商品を選んで、実行するだけ。
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest" target="_blank" rel="noopener">
-            インストーラをダウンロード
+            ダウンロード（Windows）
           </a>
           <a class="btn btn-ghost" href="https://github.com/TAKUMIN29/amazon-teiki-canceler" target="_blank" rel="noopener">
-            ソースを見る
+            GitHub
           </a>
         </div>
-        <div class="req-note">REQUIRES — Windows 10/11 ・ Google Chrome</div>
+        <div class="req-note">Windows 10/11 と Google Chrome が必要です</div>
       </div>
 
       <div class="ticket-wrap">
         <div class="ticket" id="hero-ticket">
           <div class="ticket-head">
             <div>
-              <div class="kind">定期おトク便 ・ ADMISSION</div>
+              <div class="kind">定期おトク便</div>
               <div class="name">い・ろ・は・す 2L PET ×8本</div>
             </div>
             <div class="no">No. B08TV9<br>VDR7</div>
@@ -428,12 +427,11 @@
             </div>
             <div class="field wide">
               <div class="k">このご利用について</div>
-              <div class="status-chip">選択待ち ・ 何もしない / 解約する</div>
+              <div class="status-chip">何もしない / 解約する</div>
             </div>
           </div>
           <div class="ticket-stub">
             <div class="barcode" aria-hidden="true"></div>
-            <div class="stub-note">TEIKI-CANCELER</div>
           </div>
         </div>
       </div>
@@ -443,9 +441,7 @@
   <section id="how">
     <div class="rail">
       <div class="section-head">
-        <div class="eyebrow">ROUTE / 使い方</div>
-        <h2>3駅で完結する。</h2>
-        <p>むずかしい設定はありません。改札を通るくらいの手数で、今の状態を確認して終わります。</p>
+        <h2>使い方</h2>
       </div>
 
       <div class="route" id="route">
@@ -456,21 +452,21 @@
         <div class="stops">
           <div class="stop">
             <div class="dot"></div>
-            <div class="idx">STOP 01</div>
+            <div class="idx">1</div>
             <h3>ログインする</h3>
-            <p>ボタンを押すと開くブラウザで、いつも通りAmazonにログイン。2段階認証もそのままで大丈夫です。</p>
+            <p>開いたブラウザで、いつも通りAmazonにログインします。</p>
           </div>
           <div class="stop">
             <div class="dot"></div>
-            <div class="idx">STOP 02</div>
-            <h3>見る・選ぶ</h3>
-            <p>定期おトク便の一覧が並びます。商品ごとに「何もしない」か「解約する」かを選んでいきます。</p>
+            <div class="idx">2</div>
+            <h3>選ぶ</h3>
+            <p>一覧から、解約する商品を選びます。</p>
           </div>
           <div class="stop">
             <div class="dot"></div>
-            <div class="idx">STOP 03</div>
+            <div class="idx">3</div>
             <h3>実行する</h3>
-            <p>選んだ内容を確認してから実行します。</p>
+            <p>内容を確認して実行します。</p>
           </div>
         </div>
       </div>
@@ -480,9 +476,7 @@
   <section id="demo">
     <div class="rail">
       <div class="section-head">
-        <div class="eyebrow">ON BOARD / 実際の画面</div>
-        <h2>動いているところを見る。</h2>
-        <p>一覧の表示から、商品ごとに解約を選んで実行するまでの流れです。</p>
+        <h2>実際の画面</h2>
       </div>
 
       <div class="demo-frame" id="demo-frame">
@@ -496,20 +490,17 @@
   <section id="features">
     <div class="rail">
       <div class="section-head">
-        <div class="eyebrow">FARE TABLE / できること</div>
-        <h2>2枚の切符に、できることをまとめました。</h2>
+        <h2>できること</h2>
       </div>
 
       <div class="stub-grid">
         <div class="feat">
-          <div class="idx">01 ／ LIST</div>
           <h3>一覧表示</h3>
-          <p>次回お届け日・数量・価格をまとめて表示。今どれだけ定期便を抱えているか、一目で分かります。</p>
+          <p>次回お届け日・数量・価格を一覧で確認できます。</p>
         </div>
         <div class="feat">
-          <div class="idx">02 ／ CANCEL</div>
-          <h3>個別に解約</h3>
-          <p>商品ごとにチェックして、まとめて実行。全部を同じ操作にする必要はありません。</p>
+          <h3>選んで解約</h3>
+          <p>解約したい商品だけを選んで、まとめて実行できます。</p>
         </div>
       </div>
     </div>
@@ -520,10 +511,9 @@
       <div class="fineprint">
         <h2><span class="mark">※</span>ご利用にあたって</h2>
         <ul>
-          <li><strong>解約は元に戻せません。</strong>再度利用するには登録し直しが必要です。内容をよく確認してから実行してください。</li>
-          <li>ログイン情報はお使いのパソコンにのみ保存され、外部には送信されません。</li>
-          <li>Amazonの利用規約の範囲内で、ご自身のアカウントの定期おトク便を管理する目的でのみご利用ください。</li>
-          <li>本ツールは非公式な自動操作です。利用規約違反とみなされアカウントが停止・制限される可能性があります。ご利用により生じた損害について作成者は責任を負いません。自己責任でご利用ください。</li>
+          <li><strong>解約は元に戻せません。</strong>実行前に内容をよく確認してください。</li>
+          <li>ログイン情報はお使いのパソコンにだけ保存されます。</li>
+                    <li>Amazon非公式のツールです。アカウントが制限される可能性もあるため、自己責任でご利用ください。</li>
         </ul>
       </div>
     </div>
@@ -538,8 +528,8 @@
             <path d="M60 2V50" stroke="var(--accent)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>
           </svg>
         </div>
-        <h2>改札を通ろう。</h2>
-        <p>インストーラをダウンロードして起動するだけ。あとはログインして、選ぶだけです。</p>
+        <h2>ダウンロード</h2>
+        <p>インストールして、ログインすればすぐに使えます。</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest" target="_blank" rel="noopener">
             最新版をダウンロード
