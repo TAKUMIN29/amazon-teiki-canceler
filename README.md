@@ -1,9 +1,26 @@
+<div align="center">
+
+<img src="docs/assets/icon-256.png" width="120" height="120" alt="定期おトク便かんたん解約 のアイコン">
+
 # 定期おトク便かんたん解約
 
-Amazonの定期おトク便を、商品を選んでまとめて解約できるツールです。
-Windows用のアプリと、ターミナルから使うCLIがあります。
+**Amazonの定期おトク便を、まとめて解約できるWindowsアプリ**
 
+[![Stars](https://img.shields.io/github/stars/TAKUMIN29/amazon-teiki-canceler?style=flat&logo=github)](https://github.com/TAKUMIN29/amazon-teiki-canceler/stargazers)
+[![Release](https://img.shields.io/github/v/release/TAKUMIN29/amazon-teiki-canceler?label=release)](https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/TAKUMIN29/amazon-teiki-canceler/total?label=downloads)](https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest)
+[![License](https://img.shields.io/github/license/TAKUMIN29/amazon-teiki-canceler)](LICENSE)
+
+一覧から解約したい商品を選んで、実行するだけ。
+ターミナルから使うCLIも用意している。
+
+[ダウンロード](https://github.com/TAKUMIN29/amazon-teiki-canceler/releases/latest) ・
+[機能](#機能) ・
+[使い方](#使い方) ・
+[ビルド方法](#ビルド方法) ・
 [紹介ページ](https://takumin29.github.io/amazon-teiki-canceler/)
+
+</div>
 
 ## ダウンロード
 
