@@ -1,6 +1,6 @@
 {
   "name": "amazon-teiki-canceler",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Amazon定期おトク便を一括でキャンセルするCLI/デスクトップアプリ",
   "license": "MIT",
   "author": "TAKUMIN29",
