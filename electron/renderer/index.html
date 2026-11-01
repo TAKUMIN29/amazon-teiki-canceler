@@ -64,15 +64,11 @@
         <input id="dryrun-checkbox" type="checkbox" checked />
         テスト実行（実際には解約されません）
       </label>
-      <label class="dryrun-toggle" title="ブラウザ画面を出さずに裏で操作します。速くなりますが、Amazonに自動操作と判定されやすくなる可能性があります。">
-        <input id="headless-checkbox" type="checkbox" />
-        ブラウザを表示しない（速い）
-      </label>
       <button id="btn-refresh-list" class="btn btn-ghost">一覧を更新</button>
     </div>
 
     <p id="list-empty" class="status-text" hidden>定期おトク便の登録はありませんでした。</p>
-    <p id="list-strategy" class="status-text muted"></p>
+    <p id="list-count" class="status-text muted"></p>
 
     <div id="item-list" class="item-list"></div>
 

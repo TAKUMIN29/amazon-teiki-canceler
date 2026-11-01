@@ -28,7 +28,7 @@ export async function runSteps(page, item, flow, { dryRun = false, log = () => {
     if (!hit) {
       if (step.optional) {
         trace.push({ step: step.description, result: 'skipped(見つからないが任意)' });
-        log(`    - ${step.description} … 見つからず（任意なので続行）`);
+        log(`    - ${step.description} … 見つからず（任意なので続行）`, { step: step.description, outcome: 'skipped' });
         continue;
       }
       const path = await dump(page, `fail-${flow.label}`);
@@ -45,7 +45,7 @@ export async function runSteps(page, item, flow, { dryRun = false, log = () => {
 
     if (dryRun && step.pointOfNoReturn) {
       trace.push({ step: step.description, result: 'dry-run-stop', matched: label });
-      log(`    - ${step.description} … 発見: ${label} 【dry-run のためここで停止】`);
+      log(`    - ${step.description} … 発見: ${label} 【dry-run のためここで停止】`, { step: step.description, outcome: 'dry-run-stop' });
       return { ok: true, status: 'dry-run', message: `最終ボタン「${label}」まで到達（未実行）`, trace };
     }
 
@@ -53,12 +53,12 @@ export async function runSteps(page, item, flow, { dryRun = false, log = () => {
       if (step.action === 'chooseReason') {
         const chosen = await chooseReason(hit.locator, flow.reasonPreference ?? []);
         trace.push({ step: step.description, result: 'ok', matched: label, value: chosen });
-        log(`    - ${step.description} … 「${chosen ?? '既定値'}」を選択`);
+        log(`    - ${step.description} … 「${chosen ?? '既定値'}」を選択`, { step: step.description, outcome: 'chosen', value: chosen });
       } else {
         await hit.locator.scrollIntoViewIfNeeded().catch(() => {});
         await hit.locator.click({ timeout: 10000 });
         trace.push({ step: step.description, result: 'ok', matched: label, scope: usedScope });
-        log(`    - ${step.description} … クリック: ${label}`);
+        log(`    - ${step.description} … クリック: ${label}`, { step: step.description, outcome: 'clicked' });
       }
     } catch (e) {
       const path = await dump(page, `error-${flow.label}`);

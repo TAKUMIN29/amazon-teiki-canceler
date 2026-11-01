@@ -26,26 +26,22 @@ let session = null;
 /**
  * すでに開いているセッションを返す。無ければ（または閉じられていれば）新規に起動する。
  *
- * headless を切り替えるとブラウザを開き直す必要がある（永続プロファイルは
- * 同時に1プロセスしか掴めないため）。ログイン時は2段階認証やCAPTCHAを人が
- * 操作する必要があるので、呼び出し側が必ず headless:false を指定する。
+ * GUIでは常にブラウザを表示して操作する（ログイン時の2段階認証やCAPTCHAを
+ * 人が操作でき、Amazonに自動操作と判定されにくくするため）。
  */
-export async function ensureSession({ headless = false } = {}) {
-  if (session && !session.closed) {
-    if (session.headless === headless) return session;
-    await closeSession(); // モードが違うので開き直す
-  }
+export async function ensureSession() {
+  if (session && !session.closed) return session;
 
   const sel = loadSelectors();
   let ctx, page;
   try {
-    ({ ctx, page } = await launch({ headless, slowMo: 0 }));
+    ({ ctx, page } = await launch({ headless: false, slowMo: 0 }));
   } catch (err) {
     err.classified = classifyLaunchFailure(err.cause?.chromeError, err.cause?.chromiumError);
     throw err;
   }
 
-  session = { ctx, page, sel, closed: false, headless };
+  session = { ctx, page, sel, closed: false };
   ctx.on('close', () => {
     if (session) session.closed = true;
   });
@@ -62,7 +58,7 @@ export function isSessionClosed() {
  * 2段階認証やCAPTCHAを人が操作する必要があるため、ここは必ずブラウザを表示する。
  */
 export async function startLogin(onStatus = () => {}) {
-  const { page, sel } = await ensureSession({ headless: false });
+  const { page, sel } = await ensureSession();
   await page.goto(sel.urls.subscriptions, { waitUntil: 'domcontentloaded' });
   onStatus({ state: 'waiting' });
 
@@ -84,18 +80,14 @@ export async function startLogin(onStatus = () => {}) {
 }
 
 /** 一覧を取得する。ログインしていない/認証チャレンジ中なら理由付きで返す。 */
-export async function getList({ headless = false } = {}) {
-  const { page, sel } = await ensureSession({ headless });
+export async function getList() {
+  const { page, sel } = await ensureSession();
   const r = await gotoSubscriptions(page, sel);
-  // ログインや本人確認が必要なら、人が操作できるよう表示ありに戻して開き直す
-  if (!r.ok && headless) {
-    await closeSession();
-    return { ok: false, reason: r.reason };
-  }
   if (!r.ok) return { ok: false, reason: r.reason };
 
-  const { items, strategy } = await listSubscriptions(page, sel);
-  return { ok: true, items, strategy };
+  // 抽出方法(strategy)などの内部情報は画面に出さないので返さない
+  const { items } = await listSubscriptions(page, sel);
+  return { ok: true, items };
 }
 
 /**
@@ -104,8 +96,8 @@ export async function getList({ headless = false } = {}) {
  * @param {{dryRun:boolean}} opts
  * @param {(event:object)=>void} onProgress
  */
-export async function runPlan(requestedEntries, { dryRun, headless = false } = {}, onProgress = () => {}) {
-  const { page, sel } = await ensureSession({ headless });
+export async function runPlan(requestedEntries, { dryRun } = {}, onProgress = () => {}) {
+  const { page, sel } = await ensureSession();
 
   // ブラウザが手動操作などで管理ページから移動していると、一覧抽出が別の
   // コンテンツ（おすすめ商品など）を誤って拾ってしまう。実行前に必ず確認し、
@@ -150,10 +142,12 @@ export async function runPlan(requestedEntries, { dryRun, headless = false } = {
       target = { ...target, cardSelector: found.cardSelector };
     }
 
-    const r = await runSteps(page, target, flow, {
-      dryRun: !!dryRun,
-      log: (message) => onProgress({ type: 'step', message }),
-    });
+    const r = forDisplay(
+      await runSteps(page, target, flow, {
+        dryRun: !!dryRun,
+        log: (_cliText, info) => onProgress({ type: 'step', message: stepMessage(info) }),
+      }),
+    );
     results.push({ title: target.title, asin: target.asin, action, ...r });
     onProgress({ type: 'item-done', index: i, total: entries.length, title: target.title, action, ...r });
 
@@ -164,6 +158,41 @@ export async function runPlan(requestedEntries, { dryRun, headless = false } = {
   }
 
   return { ok: true, results };
+}
+
+/**
+ * runSteps のログ情報を画面向けの文言にする。CLI向けの文字列にはセレクタ
+ * (role[name=...] / css=... 等)が含まれるので、画面には出さない。
+ */
+function stepMessage({ step, outcome, value } = {}) {
+  switch (outcome) {
+    case 'clicked':
+      return `・${step}`;
+    case 'chosen':
+      return `・${step}（${value ?? '既定の理由'}）`;
+    case 'dry-run-stop':
+      return `・${step} … ここで停止しました（テスト実行のため実際には解約していません）`;
+    case 'skipped':
+      return `・${step} … 該当する画面が無かったため省略しました`;
+    default:
+      return `・${step ?? '処理中'}`;
+  }
+}
+
+/**
+ * runSteps の結果を画面向けの文言に置き換える。元の詳細なメッセージ（保存した
+ * 画面のファイル名やセレクタ設定の案内など）は detail としてログファイルにだけ残す。
+ */
+function forDisplay(r) {
+  const friendly = {
+    'dry-run': 'テスト実行：最後の確定ボタンの手前まで進めました（解約はしていません）',
+    done: '解約しました',
+    'done-unverified': '解約操作は完了しましたが、完了メッセージを確認できませんでした。Amazonの画面で状態をご確認ください',
+    'not-found': '画面上で必要なボタンが見つからず、解約できませんでした。Amazonの画面が変わった可能性があります',
+    'click-failed': 'ボタンを押せなかったため、解約できませんでした。もう一度お試しください',
+  }[r.status];
+  if (!friendly) return r;
+  return { ...r, message: friendly, detail: r.message };
 }
 
 export function writeLog(kind, dryRun, results) {

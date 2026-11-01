@@ -23,37 +23,11 @@ function keyOf(item) {
   return item.asin ?? item.subscriptionId ?? item.title;
 }
 
-/**
- * 「ブラウザを表示しない」設定。ONだと画面を出さずに裏で操作するので速いが、
- * Amazonに自動操作と判定されやすくなる可能性があるため既定はOFF。
- * ログイン時は認証操作が必要なので、この設定に関わらず必ず表示される。
- */
-function isHeadless() {
-  return document.getElementById('headless-checkbox').checked;
-}
-
-// 設定はこのパソコンのこのアプリ内にだけ残す（次回起動時も選択を覚えておく）
-try {
-  const saved = localStorage.getItem('teiki:headless');
-  if (saved === '1') document.getElementById('headless-checkbox').checked = true;
-} catch {
-  /* プライベートウィンドウ等で使えなくても既定値で動く */
-}
-document.getElementById('headless-checkbox').addEventListener('change', (e) => {
-  try {
-    localStorage.setItem('teiki:headless', e.target.checked ? '1' : '0');
-  } catch {
-    /* 保存できなくても動作には影響しない */
-  }
-  // モードが変わるとブラウザを開き直す必要があるため、一覧を取り直す
-  refreshList();
-});
-
 /* ------------------------------------------------------------ 起動〜一覧取得 */
 
 async function refreshList() {
   showScreen('loading');
-  const r = await window.teiki.getList({ headless: isHeadless() });
+  const r = await window.teiki.getList();
 
   if (!r.ok) {
     if (r.reason === 'login') return showScreen('login');
@@ -65,7 +39,7 @@ async function refreshList() {
   actions.clear();
   for (const it of items) actions.set(keyOf(it), 'none');
 
-  document.getElementById('list-strategy').textContent = `${items.length}件（抽出方法: ${r.strategy}）`;
+  document.getElementById('list-count').textContent = items.length > 0 ? `${items.length}件の定期おトク便が見つかりました` : '';
   document.getElementById('list-empty').hidden = items.length > 0;
   renderItemList();
   showScreen('list');
@@ -90,7 +64,8 @@ function showLaunchError(r) {
     dlBtn.hidden = true;
   } else {
     titleEl.textContent = 'ブラウザを起動できませんでした';
-    msgEl.textContent = r.message ?? '原因不明のエラーが発生しました。もう一度お試しください。';
+    // 技術的なエラー内容は画面に出さない（開発時はメインプロセスのコンソールで確認できる）
+    msgEl.textContent = 'ブラウザの起動中に問題が発生しました。もう一度お試しください。';
     dlBtn.hidden = true;
   }
   showScreen('launchError');
@@ -275,7 +250,7 @@ async function runPlan(entries, dryRun) {
   currentEl.classList.remove('warning-text');
   backBtn.hidden = true;
 
-  const r = await window.teiki.runPlan(entries, dryRun, isHeadless());
+  const r = await window.teiki.runPlan(entries, dryRun);
 
   if (!r.ok) {
     currentEl.classList.add('warning-text');
@@ -288,7 +263,7 @@ async function runPlan(entries, dryRun) {
       li.textContent = `現在のページ: ${r.currentUrl}`;
       logEl.appendChild(li);
     } else {
-      currentEl.textContent = `エラーが発生しました: ${r.message}`;
+      currentEl.textContent = '予期しないエラーが発生したため、実行を中止しました。もう一度お試しください。';
     }
     backBtn.hidden = false;
     return;
@@ -334,7 +309,7 @@ function renderResult(results, logFile) {
   const failCount = results.filter((r) => !r.ok).length;
 
   const parts = [`${okCount} 件成功`];
-  if (dryCount) parts.push(`${dryCount} 件 dry-run`);
+  if (dryCount) parts.push(`${dryCount} 件 テスト実行`);
   if (failCount) parts.push(`${failCount} 件失敗`);
   document.getElementById('result-summary').textContent = parts.join(' / ');
 
